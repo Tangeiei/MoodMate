@@ -16,7 +16,7 @@ export class AuthService {
   // State management with Signals
   private currentUserSignal = signal<User | null>(this.getInitialUser());
   public currentUser = this.currentUserSignal.asReadonly();
-  public isAuthenticated = computed(() => !!this.currentUserSignal());
+  public isAuthenticated = computed(() => !!this.currentUserSignal() && !!this.getToken());
 
   constructor(
     private http: HttpClient,
@@ -24,6 +24,11 @@ export class AuthService {
   ) {}
 
   private getInitialUser(): User | null {
+    const token = localStorage.getItem(this.TOKEN_KEY);
+    if (!token) {
+      localStorage.removeItem(this.USER_KEY);
+      return null;
+    }
     const raw = localStorage.getItem(this.USER_KEY);
     if (!raw) return null;
     try {

@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { of, catchError } from 'rxjs';
 import { MoodService } from '../../core/services/mood.service';
 import { MoodEntry, MoodFactor } from '../../core/models/mood.model';
 
@@ -351,9 +352,11 @@ export class MoodHistoryComponent implements OnInit {
   }
 
   private loadFactors(): void {
-    this.moodService.getFactors().subscribe({
+    this.moodService.getFactors().pipe(
+      catchError(() => of({ success: false, data: [] }))
+    ).subscribe({
       next: (res) => {
-        if (res.success) {
+        if (res && res.success) {
           this.factorsList = res.data;
         }
       }
@@ -370,18 +373,26 @@ export class MoodHistoryComponent implements OnInit {
       factor_id: this.filterFactorId || undefined,
       page: this.currentPage,
       limit: this.limit
-    }).subscribe({
+    }).pipe(
+      catchError((err) => {
+        console.warn('Mood history load warning:', err);
+        return of({ success: false, data: [], pagination: { total: 0, page: 1, limit: this.limit, totalPages: 0 } });
+      })
+    ).subscribe({
       next: (res) => {
         this.isLoading = false;
-        if (res.success) {
+        if (res && res.success && res.data) {
           this.entries = res.data;
           this.currentPage = res.pagination.page;
           this.totalPages = res.pagination.totalPages;
           this.totalCount = res.pagination.total;
+        } else {
+          this.entries = [];
         }
       },
       error: () => {
         this.isLoading = false;
+        this.entries = [];
       }
     });
   }

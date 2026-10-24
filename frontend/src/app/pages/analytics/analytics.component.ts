@@ -1,5 +1,6 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { of, catchError } from 'rxjs';
 import { AnalyticsService } from '../../core/services/analytics.service';
 import { MoodAnalyticsResponse } from '../../core/models/analytics.model';
 import { Chart, registerables } from 'chart.js';
@@ -396,11 +397,16 @@ export class AnalyticsComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public loadAnalytics(): void {
-    this.analyticsService.getMoodAnalytics(this.selectedPeriod).subscribe({
+    this.analyticsService.getMoodAnalytics(this.selectedPeriod).pipe(
+      catchError((err) => {
+        console.warn('Analytics load warning:', err);
+        return of(null);
+      })
+    ).subscribe({
       next: (res) => {
-        if (res.success) {
+        if (res && res.success) {
           this.analyticsData = res;
-          setTimeout(() => this.renderCharts(), 100);
+          setTimeout(() => this.renderCharts(), 150);
         }
       }
     });

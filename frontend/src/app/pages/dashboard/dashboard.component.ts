@@ -1,6 +1,7 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { forkJoin, of, catchError } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { MoodService } from '../../core/services/mood.service';
 import { AnalyticsService } from '../../core/services/analytics.service';
@@ -469,23 +470,29 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private loadDashboardData(): void {
     this.isLoading = true;
 
-    // Load recent entries
-    this.moodService.getMoods({ page: 1, limit: 5 }).subscribe({
-      next: (res) => {
-        if (res.success) {
-          this.recentEntries = res.data;
-          this.totalEntries = res.pagination.total;
-        }
-      }
-    });
-
-    // Load 7-day analytics
-    this.analyticsService.getMoodAnalytics('7d').subscribe({
-      next: (res) => {
+    forkJoin({
+      moods: this.moodService.getMoods({ page: 1, limit: 5 }).pipe(
+        catchError(err => {
+          console.warn('Dashboard moods load warning:', err);
+          return of({ success: false, data: [], pagination: { total: 0, page: 1, limit: 5, totalPages: 0 } });
+        })
+      ),
+      analytics: this.analyticsService.getMoodAnalytics('7d').pipe(
+        catchError(err => {
+          console.warn('Dashboard analytics load warning:', err);
+          return of(null);
+        })
+      )
+    }).subscribe({
+      next: ({ moods, analytics }) => {
         this.isLoading = false;
-        if (res.success) {
-          this.analyticsData = res;
-          setTimeout(() => this.renderTrendChart(), 100);
+        if (moods && moods.success) {
+          this.recentEntries = moods.data || [];
+          this.totalEntries = moods.pagination?.total || 0;
+        }
+        if (analytics && analytics.success) {
+          this.analyticsData = analytics;
+          setTimeout(() => this.renderTrendChart(), 150);
         }
       },
       error: () => {
