@@ -39,13 +39,16 @@ import { MoodFactor } from '../../core/models/mood.model';
               <!-- Date Picker -->
               <div class="form-group date-picker-group">
                 <label class="form-label" for="entry_date">วันที่บันทึก</label>
-                <input
-                  id="entry_date"
-                  type="date"
-                  class="form-control date-input"
-                  formControlName="entry_date"
-                  [max]="todayDate"
-                />
+                <div class="date-input-wrapper" [class.has-value]="checkinForm.get('entry_date')?.value">
+                  <input
+                    id="entry_date"
+                    type="date"
+                    class="form-control date-input"
+                    formControlName="entry_date"
+                    [max]="todayDate"
+                  />
+                  <span *ngIf="!checkinForm.get('entry_date')?.value" class="date-input-placeholder" aria-hidden="true">วัน/เดือน/ปี</span>
+                </div>
               </div>
 
               <!-- Mood Score Selection (1-5 with Emojis) -->
@@ -181,6 +184,26 @@ import { MoodFactor } from '../../core/models/mood.model';
     .date-picker-group {
       max-width: 240px;
       margin-bottom: 2rem;
+    }
+
+    .date-input-wrapper {
+      position: relative;
+    }
+
+    .date-input-placeholder {
+      position: absolute;
+      top: 50%;
+      left: 1rem;
+      transform: translateY(-50%);
+      color: #94a3b8;
+      background: #ffffff;
+      font-size: 0.95rem;
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    .date-input-wrapper:not(.has-value) input[type="date"]::-webkit-datetime-edit {
+      color: transparent;
     }
 
     /* Mood Selection Emojis */

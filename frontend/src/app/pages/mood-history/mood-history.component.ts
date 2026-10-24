@@ -1,8 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { of, catchError } from 'rxjs';
+import { of, catchError, timeout } from 'rxjs';
 import { MoodService } from '../../core/services/mood.service';
 import { MoodEntry, MoodFactor } from '../../core/models/mood.model';
 
@@ -30,12 +30,18 @@ import { MoodEntry, MoodFactor } from '../../core/models/mood.model';
             <!-- Date Range -->
             <div class="filter-item">
               <label class="filter-label">ตั้งแต่วันที่</label>
-              <input type="date" class="form-control" [(ngModel)]="filterStartDate" (change)="applyFilters()" />
+              <div class="date-input-wrapper" [class.has-value]="filterStartDate">
+                <input type="date" class="form-control" [(ngModel)]="filterStartDate" (change)="applyFilters()" />
+                <span *ngIf="!filterStartDate" class="date-input-placeholder" aria-hidden="true">วัน/เดือน/ปี</span>
+              </div>
             </div>
 
             <div class="filter-item">
               <label class="filter-label">ถึงวันที่</label>
-              <input type="date" class="form-control" [(ngModel)]="filterEndDate" (change)="applyFilters()" />
+              <div class="date-input-wrapper" [class.has-value]="filterEndDate">
+                <input type="date" class="form-control" [(ngModel)]="filterEndDate" (change)="applyFilters()" />
+                <span *ngIf="!filterEndDate" class="date-input-placeholder" aria-hidden="true">วัน/เดือน/ปี</span>
+              </div>
             </div>
 
             <!-- Mood Score Filter -->
@@ -74,7 +80,13 @@ import { MoodEntry, MoodFactor } from '../../core/models/mood.model';
         </div>
 
         <!-- Entries List -->
-        <div *ngIf="!isLoading">
+        <div *ngIf="!isLoading && loadError" class="mm-card empty-state" role="alert">
+          <div class="empty-state-title">โหลดประวัติไม่สำเร็จ</div>
+          <p class="empty-state-desc">เชื่อมต่อข้อมูลไม่ได้ในขณะนี้ กรุณาลองอีกครั้ง</p>
+          <button class="btn btn-primary" (click)="loadEntries()">ลองอีกครั้ง</button>
+        </div>
+
+        <div *ngIf="!isLoading && !loadError">
           <div *ngIf="entries.length > 0; else noData" class="entries-stack">
             <div *ngFor="let entry of entries" class="mm-card entry-card">
               <div class="entry-header">
@@ -190,6 +202,26 @@ import { MoodEntry, MoodFactor } from '../../core/models/mood.model';
       color: var(--text-muted);
       margin-bottom: 0.35rem;
       display: block;
+    }
+
+    .date-input-wrapper {
+      position: relative;
+    }
+
+    .date-input-placeholder {
+      position: absolute;
+      top: 50%;
+      left: 1rem;
+      transform: translateY(-50%);
+      color: #94a3b8;
+      background: #ffffff;
+      font-size: 0.95rem;
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    .date-input-wrapper:not(.has-value) input[type="date"]::-webkit-datetime-edit {
+      color: transparent;
     }
 
     .btn-block {
@@ -329,8 +361,10 @@ import { MoodEntry, MoodFactor } from '../../core/models/mood.model';
 })
 export class MoodHistoryComponent implements OnInit {
   private moodService = inject(MoodService);
+  private changeDetector = inject(ChangeDetectorRef);
 
   public isLoading = true;
+  public loadError = false;
   public entries: MoodEntry[] = [];
   public factorsList: MoodFactor[] = [];
 
@@ -358,6 +392,7 @@ export class MoodHistoryComponent implements OnInit {
       next: (res) => {
         if (res && res.success) {
           this.factorsList = res.data;
+          this.changeDetector.markForCheck();
         }
       }
     });
@@ -365,6 +400,7 @@ export class MoodHistoryComponent implements OnInit {
 
   public loadEntries(): void {
     this.isLoading = true;
+    this.loadError = false;
 
     this.moodService.getMoods({
       start_date: this.filterStartDate || undefined,
@@ -374,6 +410,7 @@ export class MoodHistoryComponent implements OnInit {
       page: this.currentPage,
       limit: this.limit
     }).pipe(
+      timeout({ first: 10000 }),
       catchError((err) => {
         console.warn('Mood history load warning:', err);
         return of({ success: false, data: [], pagination: { total: 0, page: 1, limit: this.limit, totalPages: 0 } });
@@ -388,11 +425,17 @@ export class MoodHistoryComponent implements OnInit {
           this.totalCount = res.pagination.total;
         } else {
           this.entries = [];
+          this.totalCount = 0;
+          this.totalPages = 1;
+          this.loadError = true;
         }
+        this.changeDetector.markForCheck();
       },
       error: () => {
         this.isLoading = false;
         this.entries = [];
+        this.loadError = true;
+        this.changeDetector.markForCheck();
       }
     });
   }

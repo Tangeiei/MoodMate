@@ -1,7 +1,7 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, inject, OnDestroy } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, inject, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { forkJoin, of, catchError } from 'rxjs';
+import { forkJoin, of, catchError, timeout } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { MoodService } from '../../core/services/mood.service';
 import { AnalyticsService } from '../../core/services/analytics.service';
@@ -444,6 +444,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   public authService = inject(AuthService);
   private moodService = inject(MoodService);
   private analyticsService = inject(AnalyticsService);
+  private changeDetector = inject(ChangeDetectorRef);
 
   @ViewChild('trendChartCanvas') trendChartCanvas!: ElementRef<HTMLCanvasElement>;
   private chartInstance: Chart | null = null;
@@ -472,12 +473,14 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
     forkJoin({
       moods: this.moodService.getMoods({ page: 1, limit: 5 }).pipe(
+        timeout({ first: 10000 }),
         catchError(err => {
           console.warn('Dashboard moods load warning:', err);
           return of({ success: false, data: [], pagination: { total: 0, page: 1, limit: 5, totalPages: 0 } });
         })
       ),
       analytics: this.analyticsService.getMoodAnalytics('7d').pipe(
+        timeout({ first: 10000 }),
         catchError(err => {
           console.warn('Dashboard analytics load warning:', err);
           return of(null);
@@ -494,9 +497,11 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
           this.analyticsData = analytics;
           setTimeout(() => this.renderTrendChart(), 150);
         }
+        this.changeDetector.markForCheck();
       },
       error: () => {
         this.isLoading = false;
+        this.changeDetector.markForCheck();
       }
     });
   }
