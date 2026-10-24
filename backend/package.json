@@ -1,0 +1,11 @@
+{
+  "name": "moodmate-backend",
+  "version": "1.0.0",
+  "description": "MoodMate Node-RED Backend REST API",
+  "private": true,
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.12.0"
+  }
+}

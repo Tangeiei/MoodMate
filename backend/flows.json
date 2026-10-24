@@ -1,0 +1,885 @@
+[
+  {
+    "id": "tab_init",
+    "type": "tab",
+    "label": "0. Initialization & DB Helper",
+    "disabled": false,
+    "info": "DB Pool initialization & helper functions"
+  },
+  {
+    "id": "tab_auth",
+    "type": "tab",
+    "label": "1. Authentication API",
+    "disabled": false,
+    "info": "Register, Login, Logout, Me"
+  },
+  {
+    "id": "tab_moods",
+    "type": "tab",
+    "label": "2. Mood Entries API",
+    "disabled": false,
+    "info": "CRUD for Moods & Factors"
+  },
+  {
+    "id": "tab_analytics",
+    "type": "tab",
+    "label": "3. Analytics API",
+    "disabled": false,
+    "info": "Mood trends, score distributions, and factors"
+  },
+  {
+    "id": "tab_activities",
+    "type": "tab",
+    "label": "4. Self-care Activities API",
+    "disabled": false,
+    "info": "Activities list, mark complete, history"
+  },
+  {
+    "id": "tab_profile",
+    "type": "tab",
+    "label": "5. Profile & Account API",
+    "disabled": false,
+    "info": "Profile view, update, delete account"
+  },
+  {
+    "id": "node_0001_gqz8f",
+    "type": "inject",
+    "z": "tab_init",
+    "name": "Init On Startup",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": true,
+    "onceDelay": 0.1,
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 140,
+    "y": 100,
+    "wires": [
+      [
+        "node_0002_c13cj"
+      ]
+    ]
+  },
+  {
+    "id": "node_0002_c13cj",
+    "type": "function",
+    "z": "tab_init",
+    "name": "Create DB Pool & Helpers",
+    "func": "\nconst mysql = global.get('mysql');\nconst jwt = global.get('jwt');\nconst env = global.get('env');\n\nif (!global.get('dbPool')) {\n    const pool = mysql.createPool({\n        host: env.DB_HOST,\n        port: env.DB_PORT,\n        user: env.DB_USER,\n        password: env.DB_PASSWORD,\n        database: env.DB_NAME,\n        waitForConnections: true,\n        connectionLimit: 10,\n        queueLimit: 0,\n        charset: 'utf8mb4'\n    });\n    global.set('dbPool', pool);\n    node.log('MySQL Connection Pool Initialized for ' + env.DB_NAME + ' at ' + env.DB_HOST);\n}\n\n// Global helper to verify JWT Bearer token\nglobal.set('authenticateUser', function(msg) {\n    const authHeader = (msg.req && msg.req.headers) ? (msg.req.headers['authorization'] || msg.req.headers['Authorization']) : null;\n    if (!authHeader || !authHeader.startsWith('Bearer ')) {\n        return { error: 'กรุณาเข้าสู่ระบบก่อนทำรายการ (Token ไม่ถูกต้องหรือไม่มี)' };\n    }\n    const token = authHeader.substring(7).trim();\n    try {\n        const decoded = jwt.verify(token, env.JWT_SECRET);\n        return { user: decoded };\n    } catch (err) {\n        return { error: 'เซสชันหมดอายุหรือไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่อีกครั้ง' };\n    }\n});\n\nmsg.payload = { status: 'Database Pool and Helpers Ready' };\nreturn msg;\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 380,
+    "y": 100,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "node_0003_rwl0l",
+    "type": "http in",
+    "z": "tab_auth",
+    "name": "POST /api/auth/register",
+    "url": "/api/auth/register",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 160,
+    "y": 100,
+    "wires": [
+      [
+        "node_0004_pq7pi"
+      ]
+    ]
+  },
+  {
+    "id": "node_0004_pq7pi",
+    "type": "function",
+    "z": "tab_auth",
+    "name": "Register Handler",
+    "func": "\nconst pool = global.get('dbPool');\nconst bcrypt = global.get('bcrypt');\nconst jwt = global.get('jwt');\nconst env = global.get('env');\n\n(async () => {\n    try {\n        if (!pool) {\n            msg.statusCode = 503;\n            msg.payload = { success: false, message: 'ระบบฐานข้อมูลยังไม่พร้อมใช้งาน กรุณาลองใหม่อีกครั้ง' };\n            node.send(msg);\n            return;\n        }\n\n        const body = msg.payload || {};\n        const { display_name, email, password, confirm_password, student_id, privacy_accepted } = body;\n\n        // Validation\n        if (!display_name || !display_name.trim()) {\n            msg.statusCode = 400;\n            msg.payload = { success: false, message: 'กรุณากรอกชื่อที่ใช้แสดง' };\n            node.send(msg);\n            return;\n        }\n\n        if (!email || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email.trim())) {\n            msg.statusCode = 400;\n            msg.payload = { success: false, message: 'รูปแบบอีเมลไม่ถูกต้อง' };\n            node.send(msg);\n            return;\n        }\n\n        if (!password || password.length < 6) {\n            msg.statusCode = 400;\n            msg.payload = { success: false, message: 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร' };\n            node.send(msg);\n            return;\n        }\n\n        if (password !== confirm_password) {\n            msg.statusCode = 400;\n            msg.payload = { success: false, message: 'รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน' };\n            node.send(msg);\n            return;\n        }\n\n        if (!privacy_accepted) {\n            msg.statusCode = 400;\n            msg.payload = { success: false, message: 'กรุณายอมรับนโยบายความเป็นส่วนตัวก่อนสมัครสมาชิก' };\n            node.send(msg);\n            return;\n        }\n\n        const cleanEmail = email.trim().toLowerCase();\n        const cleanName = display_name.trim();\n        const cleanStudentId = student_id ? student_id.trim() : null;\n\n        // Check duplicate email\n        const [existing] = await pool.execute('SELECT id FROM users WHERE email = ? LIMIT 1', [cleanEmail]);\n        if (existing.length > 0) {\n            msg.statusCode = 409;\n            msg.payload = { success: false, message: 'อีเมลนี้ถูกใช้งานในระบบแล้ว กรุณาใช้อีเมลอื่นหรือเข้าสู่ระบบ' };\n            node.send(msg);\n            return;\n        }\n\n        // Hash password with bcrypt\n        const salt = await bcrypt.genSalt(10);\n        const password_hash = await bcrypt.hash(password, salt);\n\n        // Insert new user\n        const [result] = await pool.execute(\n            'INSERT INTO users (display_name, email, student_id, password_hash) VALUES (?, ?, ?, ?)',\n            [cleanName, cleanEmail, cleanStudentId, password_hash]\n        );\n\n        const newUserId = result.insertId;\n\n        // Generate JWT\n        const tokenPayload = { id: newUserId, email: cleanEmail, display_name: cleanName };\n        const token = jwt.sign(tokenPayload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN });\n\n        msg.statusCode = 201;\n        msg.payload = {\n            success: true,\n            message: 'สมัครสมาชิกสำเร็จ ยินดีต้อนรับสู่ MoodMate',\n            token: token,\n            user: {\n                id: newUserId,\n                display_name: cleanName,\n                email: cleanEmail,\n                student_id: cleanStudentId\n            }\n        };\n        node.send(msg);\n    } catch (err) {\n        node.error('Register error: ' + err.message);\n        msg.statusCode = 500;\n        msg.payload = { success: false, message: 'เกิดข้อผิดพลาดในการสมัครสมาชิก กรุณาลองใหม่อีกครั้ง' };\n        node.send(msg);\n    }\n})();\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 100,
+    "wires": [
+      [
+        "node_0005_w7o5n"
+      ]
+    ]
+  },
+  {
+    "id": "node_0005_w7o5n",
+    "type": "http response",
+    "z": "tab_auth",
+    "name": "Response",
+    "statusCode": "",
+    "headers": {},
+    "x": 680,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "node_0006_cnn3m",
+    "type": "http in",
+    "z": "tab_auth",
+    "name": "POST /api/auth/login",
+    "url": "/api/auth/login",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 160,
+    "y": 200,
+    "wires": [
+      [
+        "node_0007_pbqkb"
+      ]
+    ]
+  },
+  {
+    "id": "node_0007_pbqkb",
+    "type": "function",
+    "z": "tab_auth",
+    "name": "Login Handler",
+    "func": "\nconst pool = global.get('dbPool');\nconst bcrypt = global.get('bcrypt');\nconst jwt = global.get('jwt');\nconst env = global.get('env');\n\n(async () => {\n    try {\n        if (!pool) {\n            msg.statusCode = 503;\n            msg.payload = { success: false, message: 'ระบบฐานข้อมูลยังไม่พร้อมใช้งาน' };\n            node.send(msg);\n            return;\n        }\n\n        const body = msg.payload || {};\n        const { email, password } = body;\n\n        if (!email || !password) {\n            msg.statusCode = 400;\n            msg.payload = { success: false, message: 'กรุณากรอกอีเมลและรหัสผ่าน' };\n            node.send(msg);\n            return;\n        }\n\n        const cleanEmail = email.trim().toLowerCase();\n\n        const [users] = await pool.execute(\n            'SELECT id, display_name, email, student_id, password_hash FROM users WHERE email = ? LIMIT 1',\n            [cleanEmail]\n        );\n\n        if (users.length === 0) {\n            msg.statusCode = 401;\n            msg.payload = { success: false, message: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' };\n            node.send(msg);\n            return;\n        }\n\n        const user = users[0];\n        const match = await bcrypt.compare(password, user.password_hash);\n        if (!match) {\n            msg.statusCode = 401;\n            msg.payload = { success: false, message: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' };\n            node.send(msg);\n            return;\n        }\n\n        // Generate token\n        const tokenPayload = { id: user.id, email: user.email, display_name: user.display_name };\n        const token = jwt.sign(tokenPayload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN });\n\n        msg.statusCode = 200;\n        msg.payload = {\n            success: true,\n            message: 'เข้าสู่ระบบสำเร็จ',\n            token: token,\n            user: {\n                id: user.id,\n                display_name: user.display_name,\n                email: user.email,\n                student_id: user.student_id\n            }\n        };\n        node.send(msg);\n    } catch (err) {\n        node.error('Login error: ' + err.message);\n        msg.statusCode = 500;\n        msg.payload = { success: false, message: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ' };\n        node.send(msg);\n    }\n})();\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 200,
+    "wires": [
+      [
+        "node_0008_4s6y9"
+      ]
+    ]
+  },
+  {
+    "id": "node_0008_4s6y9",
+    "type": "http response",
+    "z": "tab_auth",
+    "name": "Response",
+    "statusCode": "",
+    "headers": {},
+    "x": 680,
+    "y": 200,
+    "wires": []
+  },
+  {
+    "id": "node_0009_mrzsg",
+    "type": "http in",
+    "z": "tab_auth",
+    "name": "POST /api/auth/logout",
+    "url": "/api/auth/logout",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 160,
+    "y": 300,
+    "wires": [
+      [
+        "node_000a_stryl"
+      ]
+    ]
+  },
+  {
+    "id": "node_000a_stryl",
+    "type": "function",
+    "z": "tab_auth",
+    "name": "Logout Handler",
+    "func": "\nmsg.statusCode = 200;\nmsg.payload = { success: true, message: 'ออกจากระบบสำเร็จ' };\nreturn msg;\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 300,
+    "wires": [
+      [
+        "node_000b_91qe6"
+      ]
+    ]
+  },
+  {
+    "id": "node_000b_91qe6",
+    "type": "http response",
+    "z": "tab_auth",
+    "name": "Response",
+    "statusCode": "",
+    "headers": {},
+    "x": 680,
+    "y": 300,
+    "wires": []
+  },
+  {
+    "id": "node_000c_t9zvj",
+    "type": "http in",
+    "z": "tab_auth",
+    "name": "GET /api/auth/me",
+    "url": "/api/auth/me",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 160,
+    "y": 400,
+    "wires": [
+      [
+        "node_000d_2sh36"
+      ]
+    ]
+  },
+  {
+    "id": "node_000d_2sh36",
+    "type": "function",
+    "z": "tab_auth",
+    "name": "Get Me Handler",
+    "func": "\nconst auth = global.get('authenticateUser')(msg);\nif (auth.error) {\n    msg.statusCode = 401;\n    msg.payload = { success: false, message: auth.error };\n    return msg;\n}\n\nconst pool = global.get('dbPool');\n(async () => {\n    try {\n        const [rows] = await pool.execute(\n            'SELECT id, display_name, email, student_id, created_at FROM users WHERE id = ? LIMIT 1',\n            [auth.user.id]\n        );\n        if (rows.length === 0) {\n            msg.statusCode = 404;\n            msg.payload = { success: false, message: 'ไม่พบข้อมูลผู้ใช้ในระบบ' };\n            node.send(msg);\n            return;\n        }\n        msg.statusCode = 200;\n        msg.payload = { success: true, user: rows[0] };\n        node.send(msg);\n    } catch (err) {\n        node.error('Me error: ' + err.message);\n        msg.statusCode = 500;\n        msg.payload = { success: false, message: 'เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้' };\n        node.send(msg);\n    }\n})();\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 400,
+    "wires": [
+      [
+        "node_000e_9bpet"
+      ]
+    ]
+  },
+  {
+    "id": "node_000e_9bpet",
+    "type": "http response",
+    "z": "tab_auth",
+    "name": "Response",
+    "statusCode": "",
+    "headers": {},
+    "x": 680,
+    "y": 400,
+    "wires": []
+  },
+  {
+    "id": "node_000f_lyfuk",
+    "type": "http in",
+    "z": "tab_moods",
+    "name": "GET /api/moods/factors",
+    "url": "/api/moods/factors",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 160,
+    "y": 80,
+    "wires": [
+      [
+        "node_0010_c29b9"
+      ]
+    ]
+  },
+  {
+    "id": "node_0010_c29b9",
+    "type": "function",
+    "z": "tab_moods",
+    "name": "Get Factors",
+    "func": "\nconst pool = global.get('dbPool');\n(async () => {\n    try {\n        const [factors] = await pool.execute(\n            'SELECT id, name FROM mood_factors WHERE is_active = TRUE ORDER BY id ASC'\n        );\n        msg.statusCode = 200;\n        msg.payload = { success: true, data: factors };\n        node.send(msg);\n    } catch (err) {\n        node.error('Get factors error: ' + err.message);\n        msg.statusCode = 500;\n        msg.payload = { success: false, message: 'ไม่สามารถดึงข้อมูลปัจจัยอารมณ์ได้' };\n        node.send(msg);\n    }\n})();\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 80,
+    "wires": [
+      [
+        "node_0011_q1ha1"
+      ]
+    ]
+  },
+  {
+    "id": "node_0011_q1ha1",
+    "type": "http response",
+    "z": "tab_moods",
+    "name": "Response",
+    "statusCode": "",
+    "headers": {},
+    "x": 680,
+    "y": 80,
+    "wires": []
+  },
+  {
+    "id": "node_0012_ynmri",
+    "type": "http in",
+    "z": "tab_moods",
+    "name": "GET /api/moods",
+    "url": "/api/moods",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 160,
+    "y": 180,
+    "wires": [
+      [
+        "node_0013_wm5gm"
+      ]
+    ]
+  },
+  {
+    "id": "node_0013_wm5gm",
+    "type": "function",
+    "z": "tab_moods",
+    "name": "Get Moods (List & Filter)",
+    "func": "\nconst auth = global.get('authenticateUser')(msg);\nif (auth.error) {\n    msg.statusCode = 401;\n    msg.payload = { success: false, message: auth.error };\n    return msg;\n}\n\nconst pool = global.get('dbPool');\nconst query = (msg.req && msg.req.query) || {};\n\n(async () => {\n    try {\n        const userId = auth.user.id;\n        let page = parseInt(query.page || '1', 10);\n        let limit = parseInt(query.limit || '10', 10);\n        if (page < 1) page = 1;\n        if (limit < 1 || limit > 100) limit = 10;\n        const offset = (page - 1) * limit;\n\n        const whereClauses = ['m.user_id = ?'];\n        const params = [userId];\n\n        if (query.start_date) {\n            whereClauses.push('m.entry_date >= ?');\n            params.push(query.start_date);\n        }\n        if (query.end_date) {\n            whereClauses.push('m.entry_date <= ?');\n            params.push(query.end_date);\n        }\n        if (query.mood_score) {\n            whereClauses.push('m.mood_score = ?');\n            params.push(parseInt(query.mood_score, 10));\n        }\n        if (query.factor_id) {\n            whereClauses.push('EXISTS (SELECT 1 FROM entry_factors ef2 WHERE ef2.mood_entry_id = m.id AND ef2.factor_id = ?)');\n            params.push(parseInt(query.factor_id, 10));\n        }\n\n        const whereSql = whereClauses.join(' AND ');\n\n        // Total count\n        const countSql = 'SELECT COUNT(DISTINCT m.id) as total FROM mood_entries m WHERE ' + whereSql;\n        const [countResult] = await pool.execute(countSql, params);\n        const total = countResult[0].total;\n\n        // Fetch paginated entries with factors\n        const dataSql = `\n            SELECT \n                m.id, \n                DATE_FORMAT(m.entry_date, '%Y-%m-%d') as entry_date, \n                m.mood_score, \n                m.mood_label, \n                m.stress_level, \n                m.journal_text, \n                m.created_at, \n                m.updated_at,\n                GROUP_CONCAT(f.name ORDER BY f.id SEPARATOR ', ') AS factor_names,\n                GROUP_CONCAT(f.id ORDER BY f.id SEPARATOR ',') AS factor_ids_str\n            FROM mood_entries m\n            LEFT JOIN entry_factors ef ON m.id = ef.mood_entry_id\n            LEFT JOIN mood_factors f ON ef.factor_id = f.id\n            WHERE ${whereSql}\n            GROUP BY m.id\n            ORDER BY m.entry_date DESC, m.id DESC\n            LIMIT ? OFFSET ?\n        `;\n\n        // LIMIT and OFFSET as numbers\n        const dataParams = [...params, limit, offset];\n        // In mysql2 execute, limit/offset work when passed as numbers or string depending on prepared statement mode\n        const [rows] = await pool.query(dataSql, dataParams);\n\n        const items = rows.map(r => ({\n            id: r.id,\n            entry_date: r.entry_date,\n            mood_score: r.mood_score,\n            mood_label: r.mood_label,\n            stress_level: r.stress_level,\n            journal_text: r.journal_text,\n            created_at: r.created_at,\n            updated_at: r.updated_at,\n            factor_names: r.factor_names ? r.factor_names.split(', ') : [],\n            factor_ids: r.factor_ids_str ? r.factor_ids_str.split(',').map(id => parseInt(id, 10)) : []\n        }));\n\n        msg.statusCode = 200;\n        msg.payload = {\n            success: true,\n            data: items,\n            pagination: {\n                total,\n                page,\n                limit,\n                totalPages: Math.ceil(total / limit)\n            }\n        };\n        node.send(msg);\n    } catch (err) {\n        node.error('Get moods error: ' + err.message);\n        msg.statusCode = 500;\n        msg.payload = { success: false, message: 'เกิดข้อผิดพลาดในการดึงรายการบันทึกอารมณ์' };\n        node.send(msg);\n    }\n})();\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 180,
+    "wires": [
+      [
+        "node_0014_cssdt"
+      ]
+    ]
+  },
+  {
+    "id": "node_0014_cssdt",
+    "type": "http response",
+    "z": "tab_moods",
+    "name": "Response",
+    "statusCode": "",
+    "headers": {},
+    "x": 680,
+    "y": 180,
+    "wires": []
+  },
+  {
+    "id": "node_0015_ol4wn",
+    "type": "http in",
+    "z": "tab_moods",
+    "name": "POST /api/moods",
+    "url": "/api/moods",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 160,
+    "y": 280,
+    "wires": [
+      [
+        "node_0016_74nob"
+      ]
+    ]
+  },
+  {
+    "id": "node_0016_74nob",
+    "type": "function",
+    "z": "tab_moods",
+    "name": "Create Mood Entry",
+    "func": "\nconst auth = global.get('authenticateUser')(msg);\nif (auth.error) {\n    msg.statusCode = 401;\n    msg.payload = { success: false, message: auth.error };\n    return msg;\n}\n\nconst pool = global.get('dbPool');\n(async () => {\n    let conn;\n    try {\n        const userId = auth.user.id;\n        const body = msg.payload || {};\n        const { entry_date, mood_score, mood_label, stress_level, journal_text, factor_ids } = body;\n\n        // Validation\n        if (!entry_date || !/^\\d{4}-\\d{2}-\\d{2}$/.test(entry_date)) {\n            msg.statusCode = 400;\n            msg.payload = { success: false, message: 'กรุณาระบุวันที่บันทึกให้ถูกต้อง (รูปแบบ YYYY-MM-DD)' };\n            node.send(msg);\n            return;\n        }\n\n        const score = parseInt(mood_score, 10);\n        if (isNaN(score) || score < 1 || score > 5) {\n            msg.statusCode = 400;\n            msg.payload = { success: false, message: 'คะแนนอารมณ์ต้องอยู่ระหว่าง 1 ถึง 5' };\n            node.send(msg);\n            return;\n        }\n\n        const labels = { 1: 'แย่มาก', 2: 'ไม่ค่อยดี', 3: 'ปกติ', 4: 'ดี', 5: 'ดีมาก' };\n        const finalLabel = mood_label && mood_label.trim() ? mood_label.trim() : labels[score];\n\n        let finalStress = null;\n        if (stress_level !== undefined && stress_level !== null && stress_level !== '') {\n            const s = parseInt(stress_level, 10);\n            if (!isNaN(s) && s >= 1 && s <= 5) {\n                finalStress = s;\n            }\n        }\n\n        // Check duplicate entry for the same date for this user\n        const [existing] = await pool.execute(\n            'SELECT id FROM mood_entries WHERE user_id = ? AND entry_date = ? LIMIT 1',\n            [userId, entry_date]\n        );\n\n        if (existing.length > 0) {\n            msg.statusCode = 409;\n            msg.payload = {\n                success: false,\n                message: 'คุณมีบันทึกอารมณ์ของวันที่ ' + entry_date + ' อยู่แล้ว สามารถเลือกดูหรือแก้ไขบันทึกเดิมได้',\n                existing_id: existing[0].id\n            };\n            node.send(msg);\n            return;\n        }\n\n        // Transaction for inserting entry + factors\n        conn = await pool.getConnection();\n        await conn.beginTransaction();\n\n        const [insertResult] = await conn.execute(\n            'INSERT INTO mood_entries (user_id, entry_date, mood_score, mood_label, stress_level, journal_text) VALUES (?, ?, ?, ?, ?, ?)',\n            [userId, entry_date, score, finalLabel, finalStress, journal_text ? journal_text.trim() : null]\n        );\n\n        const entryId = insertResult.insertId;\n\n        // Insert factors if provided\n        if (Array.isArray(factor_ids) && factor_ids.length > 0) {\n            for (const fId of factor_ids) {\n                const cleanFId = parseInt(fId, 10);\n                if (!isNaN(cleanFId)) {\n                    await conn.execute(\n                        'INSERT INTO entry_factors (mood_entry_id, factor_id) VALUES (?, ?)',\n                        [entryId, cleanFId]\n                    );\n                }\n            }\n        }\n\n        await conn.commit();\n\n        msg.statusCode = 201;\n        msg.payload = {\n            success: true,\n            message: 'บันทึกอารมณ์เรียบร้อยแล้ว ขอบคุณที่ดูแลใจตัวเองในวันนี้',\n            id: entryId\n        };\n        node.send(msg);\n    } catch (err) {\n        if (conn) await conn.rollback();\n        node.error('Post mood error: ' + err.message);\n        msg.statusCode = 500;\n        msg.payload = { success: false, message: 'เกิดข้อผิดพลาดในการบันทึกอารมณ์' };\n        node.send(msg);\n    } finally {\n        if (conn) conn.release();\n    }\n})();\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 280,
+    "wires": [
+      [
+        "node_0017_sgx3f"
+      ]
+    ]
+  },
+  {
+    "id": "node_0017_sgx3f",
+    "type": "http response",
+    "z": "tab_moods",
+    "name": "Response",
+    "statusCode": "",
+    "headers": {},
+    "x": 680,
+    "y": 280,
+    "wires": []
+  },
+  {
+    "id": "node_0018_1ks16",
+    "type": "http in",
+    "z": "tab_moods",
+    "name": "GET /api/moods/:id",
+    "url": "/api/moods/:id",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 160,
+    "y": 380,
+    "wires": [
+      [
+        "node_0019_5o3zq"
+      ]
+    ]
+  },
+  {
+    "id": "node_0019_5o3zq",
+    "type": "function",
+    "z": "tab_moods",
+    "name": "Get Mood by ID",
+    "func": "\nconst auth = global.get('authenticateUser')(msg);\nif (auth.error) {\n    msg.statusCode = 401;\n    msg.payload = { success: false, message: auth.error };\n    return msg;\n}\n\nconst pool = global.get('dbPool');\nconst entryId = parseInt(msg.req.params.id, 10);\n\n(async () => {\n    try {\n        if (isNaN(entryId)) {\n            msg.statusCode = 400;\n            msg.payload = { success: false, message: 'รหัสบันทึกไม่ถูกต้อง' };\n            node.send(msg);\n            return;\n        }\n\n        // Strict isolation: user_id check\n        const [rows] = await pool.execute(\n            `SELECT id, user_id, DATE_FORMAT(entry_date, '%Y-%m-%d') as entry_date, \n                    mood_score, mood_label, stress_level, journal_text, created_at, updated_at \n             FROM mood_entries \n             WHERE id = ? AND user_id = ? LIMIT 1`,\n            [entryId, auth.user.id]\n        );\n\n        if (rows.length === 0) {\n            msg.statusCode = 404;\n            msg.payload = { success: false, message: 'ไม่พบบันทึกอารมณ์ หรือคุณไม่มีสิทธิ์เข้าถึงบันทึกนี้' };\n            node.send(msg);\n            return;\n        }\n\n        const entry = rows[0];\n\n        // Fetch factors\n        const [factors] = await pool.execute(\n            `SELECT f.id, f.name \n             FROM entry_factors ef \n             JOIN mood_factors f ON ef.factor_id = f.id \n             WHERE ef.mood_entry_id = ?`,\n            [entryId]\n        );\n\n        entry.factors = factors;\n        entry.factor_ids = factors.map(f => f.id);\n\n        msg.statusCode = 200;\n        msg.payload = { success: true, data: entry };\n        node.send(msg);\n    } catch (err) {\n        node.error('Get single mood error: ' + err.message);\n        msg.statusCode = 500;\n        msg.payload = { success: false, message: 'เกิดข้อผิดพลาดในการดึงข้อมูลบันทึก' };\n        node.send(msg);\n    }\n})();\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 380,
+    "wires": [
+      [
+        "node_001a_g0hrc"
+      ]
+    ]
+  },
+  {
+    "id": "node_001a_g0hrc",
+    "type": "http response",
+    "z": "tab_moods",
+    "name": "Response",
+    "statusCode": "",
+    "headers": {},
+    "x": 680,
+    "y": 380,
+    "wires": []
+  },
+  {
+    "id": "node_001b_m1lgz",
+    "type": "http in",
+    "z": "tab_moods",
+    "name": "PUT /api/moods/:id",
+    "url": "/api/moods/:id",
+    "method": "put",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 160,
+    "y": 480,
+    "wires": [
+      [
+        "node_001c_it7rd"
+      ]
+    ]
+  },
+  {
+    "id": "node_001c_it7rd",
+    "type": "function",
+    "z": "tab_moods",
+    "name": "Update Mood Entry",
+    "func": "\nconst auth = global.get('authenticateUser')(msg);\nif (auth.error) {\n    msg.statusCode = 401;\n    msg.payload = { success: false, message: auth.error };\n    return msg;\n}\n\nconst pool = global.get('dbPool');\nconst entryId = parseInt(msg.req.params.id, 10);\n\n(async () => {\n    let conn;\n    try {\n        if (isNaN(entryId)) {\n            msg.statusCode = 400;\n            msg.payload = { success: false, message: 'รหัสบันทึกไม่ถูกต้อง' };\n            node.send(msg);\n            return;\n        }\n\n        const userId = auth.user.id;\n        const body = msg.payload || {};\n        const { entry_date, mood_score, mood_label, stress_level, journal_text, factor_ids } = body;\n\n        // Check ownership\n        const [check] = await pool.execute(\n            'SELECT id, entry_date FROM mood_entries WHERE id = ? AND user_id = ? LIMIT 1',\n            [entryId, userId]\n        );\n\n        if (check.length === 0) {\n            msg.statusCode = 404;\n            msg.payload = { success: false, message: 'ไม่พบบันทึกที่ต้องการแก้ไข หรือคุณไม่มีสิทธิ์เข้าถึง' };\n            node.send(msg);\n            return;\n        }\n\n        const score = parseInt(mood_score, 10);\n        if (isNaN(score) || score < 1 || score > 5) {\n            msg.statusCode = 400;\n            msg.payload = { success: false, message: 'คะแนนอารมณ์ต้องอยู่ระหว่าง 1 ถึง 5' };\n            node.send(msg);\n            return;\n        }\n\n        const labels = { 1: 'แย่มาก', 2: 'ไม่ค่อยดี', 3: 'ปกติ', 4: 'ดี', 5: 'ดีมาก' };\n        const finalLabel = mood_label && mood_label.trim() ? mood_label.trim() : labels[score];\n\n        let finalStress = null;\n        if (stress_level !== undefined && stress_level !== null && stress_level !== '') {\n            const s = parseInt(stress_level, 10);\n            if (!isNaN(s) && s >= 1 && s <= 5) {\n                finalStress = s;\n            }\n        }\n\n        // If entry_date changed, verify uniqueness\n        if (entry_date && entry_date !== check[0].entry_date) {\n            const [dup] = await pool.execute(\n                'SELECT id FROM mood_entries WHERE user_id = ? AND entry_date = ? AND id != ? LIMIT 1',\n                [userId, entry_date, entryId]\n            );\n            if (dup.length > 0) {\n                msg.statusCode = 409;\n                msg.payload = { success: false, message: 'มีบันทึกอารมณ์ของวันที่ ' + entry_date + ' อยู่แล้ว' };\n                node.send(msg);\n                return;\n            }\n        }\n\n        conn = await pool.getConnection();\n        await conn.beginTransaction();\n\n        // Update mood entry\n        await conn.execute(\n            `UPDATE mood_entries \n             SET mood_score = ?, mood_label = ?, stress_level = ?, journal_text = ?, \n                 entry_date = COALESCE(?, entry_date)\n             WHERE id = ? AND user_id = ?`,\n            [score, finalLabel, finalStress, journal_text ? journal_text.trim() : null, entry_date || null, entryId, userId]\n        );\n\n        // Sync factors: delete old, insert new\n        await conn.execute('DELETE FROM entry_factors WHERE mood_entry_id = ?', [entryId]);\n\n        if (Array.isArray(factor_ids) && factor_ids.length > 0) {\n            for (const fId of factor_ids) {\n                const cleanFId = parseInt(fId, 10);\n                if (!isNaN(cleanFId)) {\n                    await conn.execute(\n                        'INSERT INTO entry_factors (mood_entry_id, factor_id) VALUES (?, ?)',\n                        [entryId, cleanFId]\n                    );\n                }\n            }\n        }\n\n        await conn.commit();\n\n        msg.statusCode = 200;\n        msg.payload = { success: true, message: 'แก้ไขบันทึกอารมณ์สำเร็จ' };\n        node.send(msg);\n    } catch (err) {\n        if (conn) await conn.rollback();\n        node.error('Put mood error: ' + err.message);\n        msg.statusCode = 500;\n        msg.payload = { success: false, message: 'เกิดข้อผิดพลาดในการแก้ไขบันทึก' };\n        node.send(msg);\n    } finally {\n        if (conn) conn.release();\n    }\n})();\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 480,
+    "wires": [
+      [
+        "node_001d_iwlkd"
+      ]
+    ]
+  },
+  {
+    "id": "node_001d_iwlkd",
+    "type": "http response",
+    "z": "tab_moods",
+    "name": "Response",
+    "statusCode": "",
+    "headers": {},
+    "x": 680,
+    "y": 480,
+    "wires": []
+  },
+  {
+    "id": "node_001e_7zqm8",
+    "type": "http in",
+    "z": "tab_moods",
+    "name": "DELETE /api/moods/:id",
+    "url": "/api/moods/:id",
+    "method": "delete",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 160,
+    "y": 580,
+    "wires": [
+      [
+        "node_001f_9x23b"
+      ]
+    ]
+  },
+  {
+    "id": "node_001f_9x23b",
+    "type": "function",
+    "z": "tab_moods",
+    "name": "Delete Mood Entry",
+    "func": "\nconst auth = global.get('authenticateUser')(msg);\nif (auth.error) {\n    msg.statusCode = 401;\n    msg.payload = { success: false, message: auth.error };\n    return msg;\n}\n\nconst pool = global.get('dbPool');\nconst entryId = parseInt(msg.req.params.id, 10);\n\n(async () => {\n    try {\n        if (isNaN(entryId)) {\n            msg.statusCode = 400;\n            msg.payload = { success: false, message: 'รหัสบันทึกไม่ถูกต้อง' };\n            node.send(msg);\n            return;\n        }\n\n        const [result] = await pool.execute(\n            'DELETE FROM mood_entries WHERE id = ? AND user_id = ?',\n            [entryId, auth.user.id]\n        );\n\n        if (result.affectedRows === 0) {\n            msg.statusCode = 404;\n            msg.payload = { success: false, message: 'ไม่พบบันทึกที่ต้องการลบ หรือคุณไม่มีสิทธิ์ลบรายการนี้' };\n            node.send(msg);\n            return;\n        }\n\n        msg.statusCode = 200;\n        msg.payload = { success: true, message: 'ลบบันทึกอารมณ์เรียบร้อยแล้ว' };\n        node.send(msg);\n    } catch (err) {\n        node.error('Delete mood error: ' + err.message);\n        msg.statusCode = 500;\n        msg.payload = { success: false, message: 'เกิดข้อผิดพลาดในการลบบันทึก' };\n        node.send(msg);\n    }\n})();\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 580,
+    "wires": [
+      [
+        "node_0020_ryex8"
+      ]
+    ]
+  },
+  {
+    "id": "node_0020_ryex8",
+    "type": "http response",
+    "z": "tab_moods",
+    "name": "Response",
+    "statusCode": "",
+    "headers": {},
+    "x": 680,
+    "y": 580,
+    "wires": []
+  },
+  {
+    "id": "node_0021_668ws",
+    "type": "http in",
+    "z": "tab_analytics",
+    "name": "GET /api/analytics/moods",
+    "url": "/api/analytics/moods",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 160,
+    "y": 150,
+    "wires": [
+      [
+        "node_0022_zeawa"
+      ]
+    ]
+  },
+  {
+    "id": "node_0022_zeawa",
+    "type": "function",
+    "z": "tab_analytics",
+    "name": "Get Mood Analytics",
+    "func": "\nconst auth = global.get('authenticateUser')(msg);\nif (auth.error) {\n    msg.statusCode = 401;\n    msg.payload = { success: false, message: auth.error };\n    return msg;\n}\n\nconst pool = global.get('dbPool');\nconst query = (msg.req && msg.req.query) || {};\n\n(async () => {\n    try {\n        const userId = auth.user.id;\n        const period = query.period === '30d' ? '30d' : '7d';\n        const days = period === '30d' ? 30 : 7;\n\n        // 1. Overall & trend in the selected period\n        const [trend] = await pool.execute(\n            `SELECT \n                DATE_FORMAT(entry_date, '%Y-%m-%d') as date,\n                mood_score,\n                mood_label,\n                stress_level\n             FROM mood_entries\n             WHERE user_id = ? AND entry_date >= DATE_SUB(CURRENT_DATE(), INTERVAL ? DAY)\n             ORDER BY entry_date ASC`,\n            [userId, days]\n        );\n\n        // 2. Score distribution\n        const [distRows] = await pool.execute(\n            `SELECT mood_score, COUNT(*) as count\n             FROM mood_entries\n             WHERE user_id = ? AND entry_date >= DATE_SUB(CURRENT_DATE(), INTERVAL ? DAY)\n             GROUP BY mood_score`,\n            [userId, days]\n        );\n\n        const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };\n        distRows.forEach(r => {\n            distribution[r.mood_score] = r.count;\n        });\n\n        // 3. Top Factors\n        const [topFactors] = await pool.execute(\n            `SELECT f.id, f.name, COUNT(*) as count\n             FROM entry_factors ef\n             JOIN mood_entries m ON ef.mood_entry_id = m.id\n             JOIN mood_factors f ON ef.factor_id = f.id\n             WHERE m.user_id = ? AND m.entry_date >= DATE_SUB(CURRENT_DATE(), INTERVAL ? DAY)\n             GROUP BY f.id, f.name\n             ORDER BY count DESC\n             LIMIT 5`,\n            [userId, days]\n        );\n\n        // 4. Summary metrics\n        let totalScore = 0;\n        let totalStress = 0;\n        let stressCount = 0;\n        trend.forEach(t => {\n            totalScore += t.mood_score;\n            if (t.stress_level) {\n                totalStress += t.stress_level;\n                stressCount++;\n            }\n        });\n\n        const entryCount = trend.length;\n        const avgMood = entryCount > 0 ? (totalScore / entryCount).toFixed(1) : null;\n        const avgStress = stressCount > 0 ? (totalStress / stressCount).toFixed(1) : null;\n\n        // 5. Friendly non-clinical supportive insight message (Thai)\n        let insight = '';\n        if (entryCount === 0) {\n            insight = 'ยังไม่มีข้อมูลบันทึกอารมณ์ในช่วง ' + days + ' วันที่ผ่านมา ลองเริ่มบันทึกอารมณ์วันนี้เพื่อดูแนวโน้มสุขภาพใจของคุณนะ!';\n        } else {\n            const numAvg = parseFloat(avgMood);\n            if (numAvg >= 4.0) {\n                insight = 'ช่วง ' + days + ' วันนี้ อารมณ์ของคุณอยู่ในเกณฑ์ดีเยี่ยมและสดใส ยอดเยี่ยมมาก! อย่าลืมรักษาพลังบวกและพักผ่อนให้เพียงพอนะ';\n            } else if (numAvg >= 3.0) {\n                insight = 'ช่วง ' + days + ' วันนี้ อารมณ์ของคุณอยู่ในเกณฑ์ปกติ มีวันที่สบายใจสลับกับวันที่เหนื่อยบ้าง ลองหากิจกรรมผ่อนคลายเติมพลังใจดูนะ';\n            } else {\n                insight = 'ช่วง ' + days + ' วันนี้ คุณอาจกำลังเผชิญกับวันที่เหนื่อยล้าหรือมีความเครียดสะสม ให้เวลากับตัวเองช้าลง พักผ่อน และลองทำกิจกรรม Self-care ดูนะ คนเก่ง!';\n            }\n\n            if (topFactors.length > 0) {\n                insight += ' ปัจจัยที่เกี่ยวข้องกับความรู้สึกของคุณบ่อยที่สุดคือ \"' + topFactors[0].name + '\"';\n            }\n        }\n\n        msg.statusCode = 200;\n        msg.payload = {\n            success: true,\n            period,\n            summary: {\n                total_entries: entryCount,\n                average_mood: avgMood,\n                average_stress: avgStress\n            },\n            trend,\n            distribution,\n            top_factors: topFactors,\n            insight\n        };\n        node.send(msg);\n    } catch (err) {\n        node.error('Analytics error: ' + err.message);\n        msg.statusCode = 500;\n        msg.payload = { success: false, message: 'เกิดข้อผิดพลาดในการประมวลผลข้อมูลสถิติ' };\n        node.send(msg);\n    }\n})();\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 150,
+    "wires": [
+      [
+        "node_0023_d0eus"
+      ]
+    ]
+  },
+  {
+    "id": "node_0023_d0eus",
+    "type": "http response",
+    "z": "tab_analytics",
+    "name": "Response",
+    "statusCode": "",
+    "headers": {},
+    "x": 680,
+    "y": 150,
+    "wires": []
+  },
+  {
+    "id": "node_0024_oodrk",
+    "type": "http in",
+    "z": "tab_activities",
+    "name": "GET /api/activities",
+    "url": "/api/activities",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 160,
+    "y": 120,
+    "wires": [
+      [
+        "node_0025_cgtx7"
+      ]
+    ]
+  },
+  {
+    "id": "node_0025_cgtx7",
+    "type": "function",
+    "z": "tab_activities",
+    "name": "Get Activities",
+    "func": "\nconst auth = global.get('authenticateUser')(msg);\nif (auth.error) {\n    msg.statusCode = 401;\n    msg.payload = { success: false, message: auth.error };\n    return msg;\n}\n\nconst pool = global.get('dbPool');\n(async () => {\n    try {\n        const userId = auth.user.id;\n        const [rows] = await pool.execute(\n            `SELECT \n                a.id, \n                a.title, \n                a.description, \n                a.category,\n                (SELECT COUNT(*) FROM user_activity_logs l \n                 WHERE l.activity_id = a.id AND l.user_id = ? AND DATE(l.completed_at) = CURRENT_DATE()) > 0 as completed_today\n             FROM self_care_activities a\n             ORDER BY a.id ASC`,\n            [userId]\n        );\n\n        const activities = rows.map(r => ({\n            ...r,\n            completed_today: Boolean(r.completed_today)\n        }));\n\n        msg.statusCode = 200;\n        msg.payload = { success: true, data: activities };\n        node.send(msg);\n    } catch (err) {\n        node.error('Get activities error: ' + err.message);\n        msg.statusCode = 500;\n        msg.payload = { success: false, message: 'ไม่สามารถดึงข้อมูลกิจกรรมดูแลตัวเองได้' };\n        node.send(msg);\n    }\n})();\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 120,
+    "wires": [
+      [
+        "node_0026_7q65c"
+      ]
+    ]
+  },
+  {
+    "id": "node_0026_7q65c",
+    "type": "http response",
+    "z": "tab_activities",
+    "name": "Response",
+    "statusCode": "",
+    "headers": {},
+    "x": 680,
+    "y": 120,
+    "wires": []
+  },
+  {
+    "id": "node_0027_g2dx9",
+    "type": "http in",
+    "z": "tab_activities",
+    "name": "POST /api/activities/:id/complete",
+    "url": "/api/activities/:id/complete",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 160,
+    "y": 240,
+    "wires": [
+      [
+        "node_0028_601oh"
+      ]
+    ]
+  },
+  {
+    "id": "node_0028_601oh",
+    "type": "function",
+    "z": "tab_activities",
+    "name": "Complete Activity",
+    "func": "\nconst auth = global.get('authenticateUser')(msg);\nif (auth.error) {\n    msg.statusCode = 401;\n    msg.payload = { success: false, message: auth.error };\n    return msg;\n}\n\nconst pool = global.get('dbPool');\nconst activityId = parseInt(msg.req.params.id, 10);\n\n(async () => {\n    try {\n        if (isNaN(activityId)) {\n            msg.statusCode = 400;\n            msg.payload = { success: false, message: 'รหัสกิจกรรมไม่ถูกต้อง' };\n            node.send(msg);\n            return;\n        }\n\n        const [act] = await pool.execute('SELECT id, title FROM self_care_activities WHERE id = ? LIMIT 1', [activityId]);\n        if (act.length === 0) {\n            msg.statusCode = 404;\n            msg.payload = { success: false, message: 'ไม่พบกิจกรรมที่ระบุ' };\n            node.send(msg);\n            return;\n        }\n\n        // Insert log\n        await pool.execute(\n            'INSERT INTO user_activity_logs (user_id, activity_id) VALUES (?, ?)',\n            [auth.user.id, activityId]\n        );\n\n        msg.statusCode = 200;\n        msg.payload = {\n            success: true,\n            message: 'บันทึกการทำกิจกรรม \"' + act[0].title + '\" สำเร็จ เก่งมากที่ให้เวลาดูแลตัวเอง!'\n        };\n        node.send(msg);\n    } catch (err) {\n        node.error('Complete activity error: ' + err.message);\n        msg.statusCode = 500;\n        msg.payload = { success: false, message: 'เกิดข้อผิดพลาดในการบันทึกกิจกรรม' };\n        node.send(msg);\n    }\n})();\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 240,
+    "wires": [
+      [
+        "node_0029_ye0ck"
+      ]
+    ]
+  },
+  {
+    "id": "node_0029_ye0ck",
+    "type": "http response",
+    "z": "tab_activities",
+    "name": "Response",
+    "statusCode": "",
+    "headers": {},
+    "x": 680,
+    "y": 240,
+    "wires": []
+  },
+  {
+    "id": "node_002a_hcsqt",
+    "type": "http in",
+    "z": "tab_activities",
+    "name": "GET /api/activities/history",
+    "url": "/api/activities/history",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 160,
+    "y": 360,
+    "wires": [
+      [
+        "node_002b_2qut8"
+      ]
+    ]
+  },
+  {
+    "id": "node_002b_2qut8",
+    "type": "function",
+    "z": "tab_activities",
+    "name": "Activity History",
+    "func": "\nconst auth = global.get('authenticateUser')(msg);\nif (auth.error) {\n    msg.statusCode = 401;\n    msg.payload = { success: false, message: auth.error };\n    return msg;\n}\n\nconst pool = global.get('dbPool');\n(async () => {\n    try {\n        const [rows] = await pool.execute(\n            `SELECT \n                l.id, \n                l.completed_at, \n                a.title, \n                a.category \n             FROM user_activity_logs l\n             JOIN self_care_activities a ON l.activity_id = a.id\n             WHERE l.user_id = ?\n             ORDER BY l.completed_at DESC\n             LIMIT 30`,\n            [auth.user.id]\n        );\n\n        msg.statusCode = 200;\n        msg.payload = { success: true, data: rows };\n        node.send(msg);\n    } catch (err) {\n        node.error('Activity history error: ' + err.message);\n        msg.statusCode = 500;\n        msg.payload = { success: false, message: 'ไม่สามารถดึงประวัติการทำกิจกรรมได้' };\n        node.send(msg);\n    }\n})();\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 360,
+    "wires": [
+      [
+        "node_002c_3m8to"
+      ]
+    ]
+  },
+  {
+    "id": "node_002c_3m8to",
+    "type": "http response",
+    "z": "tab_activities",
+    "name": "Response",
+    "statusCode": "",
+    "headers": {},
+    "x": 680,
+    "y": 360,
+    "wires": []
+  },
+  {
+    "id": "node_002d_q9e7u",
+    "type": "http in",
+    "z": "tab_profile",
+    "name": "GET /api/profile",
+    "url": "/api/profile",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 160,
+    "y": 120,
+    "wires": [
+      [
+        "node_002e_t0q1l"
+      ]
+    ]
+  },
+  {
+    "id": "node_002e_t0q1l",
+    "type": "function",
+    "z": "tab_profile",
+    "name": "Get Profile",
+    "func": "\nconst auth = global.get('authenticateUser')(msg);\nif (auth.error) {\n    msg.statusCode = 401;\n    msg.payload = { success: false, message: auth.error };\n    return msg;\n}\n\nconst pool = global.get('dbPool');\n(async () => {\n    try {\n        const userId = auth.user.id;\n\n        // User profile\n        const [users] = await pool.execute(\n            'SELECT id, display_name, email, student_id, created_at FROM users WHERE id = ? LIMIT 1',\n            [userId]\n        );\n\n        if (users.length === 0) {\n            msg.statusCode = 404;\n            msg.payload = { success: false, message: 'ไม่พบผู้ใช้ในระบบ' };\n            node.send(msg);\n            return;\n        }\n\n        const user = users[0];\n\n        // Total entries\n        const [entryCount] = await pool.execute('SELECT COUNT(*) as total FROM mood_entries WHERE user_id = ?', [userId]);\n        // Total completed activities\n        const [actCount] = await pool.execute('SELECT COUNT(*) as total FROM user_activity_logs WHERE user_id = ?', [userId]);\n        // Latest mood\n        const [latestMood] = await pool.execute(\n            `SELECT DATE_FORMAT(entry_date, '%Y-%m-%d') as entry_date, mood_score, mood_label \n             FROM mood_entries WHERE user_id = ? ORDER BY entry_date DESC LIMIT 1`,\n            [userId]\n        );\n\n        msg.statusCode = 200;\n        msg.payload = {\n            success: true,\n            data: {\n                ...user,\n                stats: {\n                    total_entries: entryCount[0].total,\n                    total_activities: actCount[0].total,\n                    latest_mood: latestMood.length > 0 ? latestMood[0] : null\n                }\n            }\n        };\n        node.send(msg);\n    } catch (err) {\n        node.error('Get profile error: ' + err.message);\n        msg.statusCode = 500;\n        msg.payload = { success: false, message: 'เกิดข้อผิดพลาดในการดึงข้อมูลโปรไฟล์' };\n        node.send(msg);\n    }\n})();\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 120,
+    "wires": [
+      [
+        "node_002f_ky92v"
+      ]
+    ]
+  },
+  {
+    "id": "node_002f_ky92v",
+    "type": "http response",
+    "z": "tab_profile",
+    "name": "Response",
+    "statusCode": "",
+    "headers": {},
+    "x": 680,
+    "y": 120,
+    "wires": []
+  },
+  {
+    "id": "node_0030_utekc",
+    "type": "http in",
+    "z": "tab_profile",
+    "name": "PUT /api/profile",
+    "url": "/api/profile",
+    "method": "put",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 160,
+    "y": 240,
+    "wires": [
+      [
+        "node_0031_fmkax"
+      ]
+    ]
+  },
+  {
+    "id": "node_0031_fmkax",
+    "type": "function",
+    "z": "tab_profile",
+    "name": "Update Profile",
+    "func": "\nconst auth = global.get('authenticateUser')(msg);\nif (auth.error) {\n    msg.statusCode = 401;\n    msg.payload = { success: false, message: auth.error };\n    return msg;\n}\n\nconst pool = global.get('dbPool');\n(async () => {\n    try {\n        const userId = auth.user.id;\n        const body = msg.payload || {};\n        const { display_name, student_id } = body;\n\n        if (!display_name || !display_name.trim()) {\n            msg.statusCode = 400;\n            msg.payload = { success: false, message: 'กรุณาระบุชื่อที่ใช้แสดง' };\n            node.send(msg);\n            return;\n        }\n\n        const cleanName = display_name.trim();\n        const cleanStudentId = student_id ? student_id.trim() : null;\n\n        await pool.execute(\n            'UPDATE users SET display_name = ?, student_id = ? WHERE id = ?',\n            [cleanName, cleanStudentId, userId]\n        );\n\n        msg.statusCode = 200;\n        msg.payload = {\n            success: true,\n            message: 'อัปเดตข้อมูลส่วนตัวเรียบร้อยแล้ว',\n            user: {\n                id: userId,\n                display_name: cleanName,\n                student_id: cleanStudentId\n            }\n        };\n        node.send(msg);\n    } catch (err) {\n        node.error('Put profile error: ' + err.message);\n        msg.statusCode = 500;\n        msg.payload = { success: false, message: 'เกิดข้อผิดพลาดในการอัปเดตข้อมูลส่วนตัว' };\n        node.send(msg);\n    }\n})();\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 240,
+    "wires": [
+      [
+        "node_0032_hd2ef"
+      ]
+    ]
+  },
+  {
+    "id": "node_0032_hd2ef",
+    "type": "http response",
+    "z": "tab_profile",
+    "name": "Response",
+    "statusCode": "",
+    "headers": {},
+    "x": 680,
+    "y": 240,
+    "wires": []
+  },
+  {
+    "id": "node_0033_khv0u",
+    "type": "http in",
+    "z": "tab_profile",
+    "name": "DELETE /api/account",
+    "url": "/api/account",
+    "method": "delete",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 160,
+    "y": 360,
+    "wires": [
+      [
+        "node_0034_a5pnh"
+      ]
+    ]
+  },
+  {
+    "id": "node_0034_a5pnh",
+    "type": "function",
+    "z": "tab_profile",
+    "name": "Delete Account",
+    "func": "\nconst auth = global.get('authenticateUser')(msg);\nif (auth.error) {\n    msg.statusCode = 401;\n    msg.payload = { success: false, message: auth.error };\n    return msg;\n}\n\nconst pool = global.get('dbPool');\n(async () => {\n    try {\n        const userId = auth.user.id;\n\n        // Cascade delete will delete mood_entries, entry_factors, user_activity_logs automatically via MySQL FK\n        const [result] = await pool.execute('DELETE FROM users WHERE id = ?', [userId]);\n\n        if (result.affectedRows === 0) {\n            msg.statusCode = 404;\n            msg.payload = { success: false, message: 'ไม่พบผู้ใช้ในระบบ' };\n            node.send(msg);\n            return;\n        }\n\n        msg.statusCode = 200;\n        msg.payload = {\n            success: true,\n            message: 'ลบบัญชีและข้อมูลประวัติสุขภาพใจทั้งหมดของคุณเรียบร้อยแล้วอย่างปลอดภัย'\n        };\n        node.send(msg);\n    } catch (err) {\n        node.error('Delete account error: ' + err.message);\n        msg.statusCode = 500;\n        msg.payload = { success: false, message: 'เกิดข้อผิดพลาดในการลบบัญชี' };\n        node.send(msg);\n    }\n})();\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 360,
+    "wires": [
+      [
+        "node_0035_xnbuo"
+      ]
+    ]
+  },
+  {
+    "id": "node_0035_xnbuo",
+    "type": "http response",
+    "z": "tab_profile",
+    "name": "Response",
+    "statusCode": "",
+    "headers": {},
+    "x": 680,
+    "y": 360,
+    "wires": []
+  }
+]

@@ -1,0 +1,69 @@
+services:
+  # 1. MySQL Database Service
+  mysql:
+    image: mysql:8.0
+    container_name: moodmate-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-moodmate_root_secure_2025}
+      MYSQL_DATABASE: ${DB_NAME:-moodmate_db}
+      MYSQL_USER: ${DB_USER:-moodmate_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-moodmate_secure_pass_2025}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database:/docker-entrypoint-initdb.d:ro
+    networks:
+      - moodmate-net
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # 2. Node-RED REST API Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: moodmate-backend
+    restart: always
+    environment:
+      PORT: 1880
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-moodmate_user}
+      DB_PASSWORD: ${DB_PASSWORD:-moodmate_secure_pass_2025}
+      DB_NAME: ${DB_NAME:-moodmate_db}
+      JWT_SECRET: ${JWT_SECRET:-moodmate_jwt_secret_student_2025_secure_key}
+      JWT_EXPIRES_IN: 7d
+      NODE_RED_ENABLE_EDITOR: ${NODE_RED_ENABLE_EDITOR:-false}
+    ports:
+      - "1880:1880"
+    networks:
+      - moodmate-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # 3. Angular Frontend + Nginx Web Server Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: moodmate-frontend
+    restart: always
+    ports:
+      - "8080:80"
+    networks:
+      - moodmate-net
+    depends_on:
+      - backend
+
+networks:
+  moodmate-net:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local
