@@ -1,414 +1,530 @@
-/**
- * Script to generate MoodMate Presentation PowerPoint (.pptx)
- */
 const pptxgen = require('pptxgenjs');
 const path = require('path');
 const fs = require('fs');
 
 const pres = new pptxgen();
 
-// Set 16:9 Widescreen
+// Configure 16:9 widescreen layout
 pres.layout = 'LAYOUT_16x9';
-pres.author = 'MoodMate Developer';
-pres.company = 'Student Project';
+pres.author = 'MoodMate Project Team';
+pres.company = 'Computer Science / Software Engineering';
 pres.title = 'MoodMate - Student Mood Tracking Web Application';
+pres.subject = 'Project Presentation & System Walkthrough';
 
-// Theme Colors
-const C_BG = 'F8FAFC';
-const C_CARD = 'FFFFFF';
-const C_PRIMARY = '4F46E5';
-const C_PRIMARY_LIGHT = 'EEF2FF';
-const C_SECONDARY = '0EA5E9';
-const C_TEXT_MAIN = '0F172A';
-const C_TEXT_MUTED = '64748B';
+// Color Palette (Calm & Modern Pastel Theme)
+const C_BG = 'F8FAFC';          // Soft slate bg
+const C_WHITE = 'FFFFFF';       // Pure white card
+const C_PRIMARY = '4A6FA5';     // Primary soft blue
+const C_PRIMARY_DARK = '2C3E50';// Dark navy text
+const C_PRIMARY_LIGHT = 'E8EFF9'; // Pill / accent bg
+const C_ACCENT_GREEN = '4E9A78';
+const C_TEXT_MAIN = '334155';   // Slate 700
+const C_TEXT_MUTED = '64748B';  // Slate 500
 const C_BORDER = 'E2E8F0';
-const C_GREEN = '10B981';
-const C_ROSE = 'F43F5E';
-const C_PURPLE = '8B5CF6';
 
-const FONT_TITLE = 'Arial';
-const FONT_BODY = 'Arial';
+const FONT_TITLE = 'Prompt';
+const FONT_BODY = 'Prompt';
 
-// Helper to create slide with background
-function createSlide(titleText, categoryText = 'MOODMATE PROJECT PRESENTATION') {
-  const slide = pres.addSlide();
+const imgDir = path.join(__dirname, 'presentation', 'screenshots');
+
+function applySlideBase(slide, tag, title) {
   slide.background = { color: C_BG };
-
-  // Category Tag
-  slide.addText(categoryText.toUpperCase(), {
-    x: 0.8,
-    y: 0.4,
-    w: 8.0,
-    h: 0.3,
-    fontSize: 10,
-    bold: true,
-    color: C_PRIMARY,
-    fontFace: FONT_TITLE
+  
+  // Header tag
+  slide.addText(tag.toUpperCase(), {
+    x: 0.8, y: 0.45, w: 11.5, h: 0.3,
+    fontSize: 10, bold: true, color: C_PRIMARY, fontFace: FONT_TITLE,
+    charSpacing: 2
   });
 
-  // Slide Title
-  slide.addText(titleText, {
-    x: 0.8,
-    y: 0.65,
-    w: 11.5,
-    h: 0.6,
-    fontSize: 22,
-    bold: true,
-    color: C_TEXT_MAIN,
-    fontFace: FONT_TITLE
+  // Header title
+  slide.addText(title, {
+    x: 0.8, y: 0.75, w: 11.5, h: 0.55,
+    fontSize: 21, bold: true, color: C_PRIMARY_DARK, fontFace: FONT_TITLE
   });
 
-  // Footer
-  slide.addText('MoodMate — Student Mood Tracking Web Application', {
-    x: 0.8,
-    y: 7.1,
-    w: 8.0,
-    h: 0.3,
-    fontSize: 9,
-    color: C_TEXT_MUTED,
-    fontFace: FONT_BODY
+  // Top header divider line
+  slide.addShape(pres.ShapeType.line, {
+    x: 0.8, y: 1.35, w: 11.733, h: 0,
+    line: { color: 'CBD5E1', width: 1 }
   });
 
-  return slide;
+  // Footer bar
+  slide.addText('MoodMate — Student Mood Tracking Web Application | Demo Presentation', {
+    x: 0.8, y: 7.05, w: 9.0, h: 0.3,
+    fontSize: 9, color: C_TEXT_MUTED, fontFace: FONT_BODY
+  });
 }
 
-// -------------------------------------------------------------
-// SLIDE 1: Title Slide
-// -------------------------------------------------------------
+// ==========================================
+// SLIDE 1: Title & Hero Cover
+// ==========================================
 const s1 = pres.addSlide();
-s1.background = { color: 'EEF2FF' };
+s1.background = { color: '0F172A' }; // Dark modern hero theme
 
-// Decorative shapes
-s1.addShape(pres.ShapeType.rect, {
-  x: 0.8, y: 1.5, w: 11.7, h: 4.5,
-  fill: { color: 'FFFFFF' },
-  line: { color: 'C7D2FE', width: 1.5 },
-  shadow: { type: 'outer', blur: 6, offset: 3, angle: 45, opacity: 0.1 }
+// Title & Subtitle Left side
+s1.addText('🌱 💙 ✨', {
+  x: 1.0, y: 1.2, w: 5.5, h: 0.6, fontSize: 32
 });
 
-s1.addText('🌱 MOODMATE PROJECT', {
-  x: 1.3, y: 1.9, w: 10.0, h: 0.4,
-  fontSize: 14, bold: true, color: C_PRIMARY, fontFace: FONT_TITLE
+s1.addText('MoodMate', {
+  x: 1.0, y: 1.8, w: 5.8, h: 1.1,
+  fontSize: 48, bold: true, color: '60A5FA', fontFace: FONT_TITLE
 });
 
-s1.addText('MoodMate — เว็บติดตามอารมณ์\nและดูแลสุขภาพใจสำหรับนักศึกษา', {
-  x: 1.3, y: 2.3, w: 10.5, h: 1.5,
-  fontSize: 32, bold: true, color: C_TEXT_MAIN, fontFace: FONT_TITLE, lineSpacingMultiple: 1.15
+s1.addText('Student Mood Tracking Web Application\nเว็บแอปพลิเคชันบันทึกและวิเคราะห์สุขภาพอารมณ์สำหรับนักศึกษา', {
+  x: 1.0, y: 2.9, w: 5.8, h: 1.1,
+  fontSize: 16, color: 'E2E8F0', fontFace: FONT_BODY, lineSpacingMultiple: 1.3
 });
 
-s1.addText('Student Mood Tracking & Mental Health Check-in Web Application\nระบบดูแลสุขภาพใจเบื้องต้น รองรับการใช้งานทั้งคอมพิวเตอร์และมือถือ 100%', {
-  x: 1.3, y: 3.9, w: 10.5, h: 0.8,
-  fontSize: 14, color: C_TEXT_MUTED, fontFace: FONT_BODY
+s1.addText([
+  { text: '• Full-Stack Architecture: ', options: { bold: true, color: '93C5FD' } },
+  { text: 'Angular 22 + Node-RED + MySQL 8.0\n' },
+  { text: '• Containerized: ', options: { bold: true, color: '93C5FD' } },
+  { text: 'Docker Compose พร้อมใช้งานทุกแพลตฟอร์ม\n' },
+  { text: '• Automated QA: ', options: { bold: true, color: '93C5FD' } },
+  { text: 'ผ่านการทดสอบ 21/21 Test Cases 100%' }
+], {
+  x: 1.0, y: 4.1, w: 5.8, h: 1.4,
+  fontSize: 13, color: '94A3B8', fontFace: FONT_BODY, lineSpacingMultiple: 1.3
 });
 
-// Badges
-const badges = ['Angular 22', 'Node-RED API', 'MySQL 8.0', 'Docker Compose', 'GitHub Pages'];
-badges.forEach((b, i) => {
-  s1.addShape(pres.ShapeType.roundRect, {
-    x: 1.3 + (i * 2.1), y: 4.8, w: 1.9, h: 0.45,
-    fill: { color: 'F1F5F9' },
-    line: { color: 'CBD5E1', width: 1 },
-    rectRadius: 0.2
+// Tech Badges on Hero
+s1.addShape(pres.ShapeType.roundRect, {
+  x: 1.0, y: 5.7, w: 5.8, h: 0.75, rectRadius: 0.1,
+  fill: { color: '1E293B' }, line: { color: '334155', width: 1 }
+});
+s1.addText('Angular 22  •  Chart.js  •  Node-RED  •  MySQL 8.0  •  Docker', {
+  x: 1.0, y: 5.7, w: 5.8, h: 0.75,
+  fontSize: 12, bold: true, color: '38BDF8', align: 'center', valign: 'middle', fontFace: FONT_TITLE
+});
+
+// Hero Image Preview (Landing Page Screenshot)
+const landingImg = path.join(imgDir, '00_landing.png');
+if (fs.existsSync(landingImg)) {
+  s1.addImage({
+    path: landingImg,
+    x: 7.1, y: 1.2, w: 5.5, h: 5.3,
+    sizing: { type: 'contain' }
   });
-  s1.addText(b, {
-    x: 1.3 + (i * 2.1), y: 4.8, w: 1.9, h: 0.45,
-    fontSize: 11, bold: true, color: C_PRIMARY, align: 'center', fontFace: FONT_TITLE
-  });
-});
+}
 
-// -------------------------------------------------------------
-// SLIDE 2: Problem & Motivation (ที่มาและความสำคัญ)
-// -------------------------------------------------------------
-const s2 = createSlide('ที่มาและความสำคัญ (Problem & Motivation)', '01. BACKGROUND & GOALS');
+// ==========================================
+// SLIDE 2: Problem & Motivation
+// ==========================================
+const s2 = pres.addSlide();
+applySlideBase(s2, '01 / Background & Motivation', 'ที่มาและความสำคัญของปัญหา (Problem Statement)');
 
-// Left Box: Problems
+// Left Card - Problems
 s2.addShape(pres.ShapeType.roundRect, {
-  x: 0.8, y: 1.5, w: 5.6, h: 5.2,
-  fill: { color: 'FFF1F2' }, line: { color: 'FECDD3', width: 1 }, rectRadius: 0.15
+  x: 0.8, y: 1.6, w: 5.6, h: 3.6, rectRadius: 0.15,
+  fill: { color: C_WHITE }, line: { color: 'FCA5A5', width: 1.5 }
 });
-s2.addText('⚠️ ปัญหาที่พบในชีวิตนักศึกษา (Pain Points)', {
-  x: 1.1, y: 1.7, w: 5.0, h: 0.4,
-  fontSize: 16, bold: true, color: C_ROSE, fontFace: FONT_TITLE
+s2.addText('⚠️ ปัญหาด้านสุขภาพใจในชีวิตมหาวิทยาลัย', {
+  x: 1.1, y: 1.8, w: 5.0, h: 0.45,
+  fontSize: 16, bold: true, color: 'DC2626', fontFace: FONT_TITLE
 });
 s2.addText([
-  { text: '• ความเครียดสะสมรอบด้าน:\n', options: { bold: true, color: C_TEXT_MAIN } },
-  { text: '   การเรียน, การสอบโปรเจกต์, ความสัมพันธ์, การเงิน และการปรับตัว\n\n' },
-  { text: '• ขาดการสังเกตอารมณ์ตนเอง:\n', options: { bold: true, color: C_TEXT_MAIN } },
-  { text: '   มักละเลยความรู้สึกจนกระทบต่อสุขภาพกายและผลการเรียน\n\n' },
-  { text: '• แอปพลิเคชันทั่วไปมีข้อจำกัด:\n', options: { bold: true, color: C_TEXT_MAIN } },
-  { text: '   มีค่าใช้จ่าย (Subscription), ใช้งานยาก หรือรุกล้ำความเป็นส่วนตัว' }
-], { x: 1.1, y: 2.3, w: 5.0, h: 4.0, fontSize: 13, color: C_TEXT_MAIN, fontFace: FONT_BODY, lineSpacingMultiple: 1.1 });
-
-// Right Box: Solutions
-s2.addShape(pres.ShapeType.roundRect, {
-  x: 6.8, y: 1.5, w: 5.7, h: 5.2,
-  fill: { color: 'ECFDF5' }, line: { color: 'A7F3D0', width: 1 }, rectRadius: 0.15
+  { text: '• ภาวะความเครียดสะสม:\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   นักศึกษาเผชิญแรงกดดันจากการเรียน สอบ งานกลุ่ม และการปรับตัว\n\n' },
+  { text: '• ขาดการรู้เท่าทันอารมณ์ตนเอง:\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   ไม่ทราบว่าช่วงเวลาใดที่ความเครียดสูง จนนำไปสู่อาการ Burnout หรือซึมเศร้า\n\n' },
+  { text: '• ขาดเครื่องมือติดตามที่เข้าถึงง่าย:\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   แอปพลิเคชันทั่วไปซับซ้อน หรือมีค่าใช้จ่าย และไม่ตอบโจทย์นักศึกษา' }
+], {
+  x: 1.1, y: 2.3, w: 5.0, h: 2.7,
+  fontSize: 13, color: C_TEXT_MAIN, fontFace: FONT_BODY, lineSpacingMultiple: 1.2
 });
-s2.addText('✨ สิ่งที่ MoodMate มอบให้ (The Solution)', {
-  x: 7.1, y: 1.7, w: 5.1, h: 0.4,
-  fontSize: 16, bold: true, color: C_GREEN, fontFace: FONT_TITLE
+
+// Right Card - Solution (MoodMate)
+s2.addShape(pres.ShapeType.roundRect, {
+  x: 6.8, y: 1.6, w: 5.7, h: 3.6, rectRadius: 0.15,
+  fill: { color: C_WHITE }, line: { color: '93C5FD', width: 1.5 }
+});
+s2.addText('🌱 โซลูชัน: MoodMate Web Application', {
+  x: 7.1, y: 1.8, w: 5.1, h: 0.45,
+  fontSize: 16, bold: true, color: C_PRIMARY, fontFace: FONT_TITLE
 });
 s2.addText([
-  { text: '• พื้นที่ปลอดภัย (Safe Zone):\n', options: { bold: true, color: C_TEXT_MAIN } },
-  { text: '   เช็กอินอารมณ์รายวันได้ใน 1 นาที โดยไม่ต้องกลัวใครตัดสิน\n\n' },
-  { text: '• ฟรี 100% สำหรับนักศึกษา:\n', options: { bold: true, color: C_TEXT_MAIN } },
-  { text: '   ไม่มีค่าใช้จ่ายแอบแฝง เข้าใช้งานได้ทั้งคอมพิวเตอร์และมือถือ\n\n' },
-  { text: '• ไม่ใช้ AI และเคารพความเป็นส่วนตัว:\n', options: { bold: true, color: C_TEXT_MAIN } },
-  { text: '   ไม่นำข้อมูลความรู้สึกไปเทรนโมเดล จัดเก็บใน MySQL จริงอย่างปลอดภัย' }
-], { x: 7.1, y: 2.3, w: 5.1, h: 4.0, fontSize: 13, color: C_TEXT_MAIN, fontFace: FONT_BODY, lineSpacingMultiple: 1.1 });
+  { text: '• บันทึกอารมณ์ประจำวันง่ายใน 1 นาที:\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   เลือกคะแนนอารมณ์ 5 ระดับ ระบุปัจจัยต้นเหตุ และชั่วโมงการนอน\n\n' },
+  { text: '• สถิติและการวิเคราะห์เชิงลึก:\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   เห็นความสัมพันธ์ระหว่างการนอน พลังงาน และอารมณ์ผ่านกราฟทันที\n\n' },
+  { text: '• แนะนำกิจกรรมดูแลใจ (Self-Care):\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   ระบบแนะนำแบบฝึกหายใจและกิจกรรมผ่อนคลายที่เหมาะกับสภาพจิตใจ' }
+], {
+  x: 7.1, y: 2.3, w: 5.1, h: 2.7,
+  fontSize: 13, color: C_TEXT_MAIN, fontFace: FONT_BODY, lineSpacingMultiple: 1.2
+});
 
-// -------------------------------------------------------------
-// SLIDE 3: Architecture & Tech Stack
-// -------------------------------------------------------------
-const s3 = createSlide('สถาปัตยกรรมระบบ (System Architecture & Tech Stack)', '02. TECHNICAL ARCHITECTURE');
+// Bottom Goal Banner
+s2.addShape(pres.ShapeType.roundRect, {
+  x: 0.8, y: 5.4, w: 11.7, h: 1.3, rectRadius: 0.12,
+  fill: { color: C_PRIMARY_LIGHT }, line: { color: 'BFDBFE', width: 1 }
+});
+s2.addText('🎯 เป้าหมายสูงสุด: ส่งเสริมสุขภาวะทางอารมณ์ที่ดี (Emotional Well-being) ให้นักศึกษาสามารถเข้าถึงเครื่องมือดูแลตนเองได้ทุกที่ ทุกเวลา อย่างเป็นส่วนตัว ปลอดภัย และไร้ค่าใช้จ่าย', {
+  x: 1.1, y: 5.55, w: 11.1, h: 1.0,
+  fontSize: 14, bold: true, color: '1E3A8A', fontFace: FONT_TITLE, lineSpacingMultiple: 1.3
+});
 
-const stackBoxes = [
-  { title: 'Frontend (หน้าบ้าน)', sub: 'Angular 22 + TypeScript', color: C_PRIMARY, bg: 'EEF2FF', border: 'C7D2FE',
-    desc: '• Single Page Application (SPA)\n• SCSS Modern Pastel UI Theme\n• Reactive Forms ตรวจสอบฟอร์ม\n• Chart.js เรนเดอร์กราฟสถิติ\n• Responsive Mobile-first' },
-  { title: 'Backend (หลังบ้าน)', sub: 'Node-RED RESTful API', color: C_SECONDARY, bg: 'F0F9FF', border: 'BAE6FD',
-    desc: '• REST API แยก 5 หมวดหมู่ชัดเจน\n• mysql2 (Prepared Statements)\n• bcryptjs (Password Hashing)\n• jsonwebtoken (JWT Auth)\n• ปิด Editor เพื่อความปลอดภัย' },
-  { title: 'Database (ฐานข้อมูล)', sub: 'MySQL 8.0 Community', color: C_PURPLE, bg: 'FAF5FF', border: 'E9D5FF',
-    desc: '• Character Set utf8mb4 (ไทย/Emoji)\n• Foreign Keys แบบ Cascade Deletion\n• Unique Constraint ป้องกันวันซ้ำ\n• Volume เก็บข้อมูลถาวร (Persistent)' },
-  { title: 'DevOps & Hosting', sub: 'Docker & GitHub Pages', color: C_GREEN, bg: 'ECFDF5', border: 'A7F3D0',
-    desc: '• Docker Compose จัดการ 3 Services\n• Nginx Reverse Proxy /api/ ไปหลังบ้าน\n• GitHub Pages ให้บริการเว็บสาธารณะ\n• รองรับ Tunnel สำหรับเปิดบนมือถือ' }
+// ==========================================
+// SLIDE 3: System Architecture
+// ==========================================
+const s3 = pres.addSlide();
+applySlideBase(s3, '02 / Technical Architecture', 'สถาปัตยกรรมระบบและเทคโนโลยี (System Architecture)');
+
+// 3 Columns: Frontend / Backend / Database
+const archCols = [
+  {
+    x: 0.8, tag: 'FRONTEND TIER', title: '🅰️ Angular 22 & Nginx', color: '2563EB',
+    items: [
+      'Single Page Application (SPA)',
+      'Angular Signals & Standalone Components',
+      'SCSS Responsive Theme (Desktop & Mobile)',
+      'Chart.js โต้ตอบแสดงผลสถิติแบบ Real-time',
+      'Nginx Container ให้บริการ Production Build'
+    ]
+  },
+  {
+    x: 4.8, tag: 'BACKEND API TIER', title: '🔴 Node-RED Flow Engine', color: 'DC2626',
+    items: [
+      'Flow-based Visual API Architecture',
+      'RESTful Endpoints: /api/auth, /api/moods',
+      'bcryptjs เข้ารหัสผ่าน Password Salt 10 รอบ',
+      'jsonwebtoken (JWT) ตรวจสอบสิทธิ์ทุก Request',
+      'mysql2 Connection Pool ป้องกัน Latency'
+    ]
+  },
+  {
+    x: 8.8, tag: 'DATABASE & DEVOPS', title: '🐬 MySQL 8.0 & Docker', color: '059669',
+    items: [
+      'Relational Schema แยกตาราง Users/Moods',
+      'Foreign Key & ON DELETE CASCADE',
+      'Docker Persistent Volume รักษาข้อมูลถาวร',
+      'Docker Compose สั่งรันทั้งระบบในคำสั่งเดียว',
+      'Cloudflare Tunnel เข้าทดสอบผ่านสมาร์ตโฟน'
+    ]
+  }
 ];
 
-stackBoxes.forEach((b, idx) => {
-  const xPos = 0.8 + (idx * 2.95);
+archCols.forEach(col => {
   s3.addShape(pres.ShapeType.roundRect, {
-    x: xPos, y: 1.5, w: 2.8, h: 5.2,
-    fill: { color: b.bg }, line: { color: b.border, width: 1.5 }, rectRadius: 0.15
+    x: col.x, y: 1.6, w: 3.7, h: 4.2, rectRadius: 0.12,
+    fill: { color: C_WHITE }, line: { color: C_BORDER, width: 1.5 }
   });
-  s3.addText(b.title, {
-    x: xPos + 0.15, y: 1.7, w: 2.5, h: 0.35,
-    fontSize: 13, bold: true, color: b.color, fontFace: FONT_TITLE
+  s3.addText(col.tag, {
+    x: col.x + 0.3, y: 1.8, w: 3.1, h: 0.25,
+    fontSize: 10, bold: true, color: col.color, fontFace: FONT_TITLE
   });
-  s3.addText(b.sub, {
-    x: xPos + 0.15, y: 2.05, w: 2.5, h: 0.3,
-    fontSize: 10.5, bold: true, color: C_TEXT_MUTED, fontFace: FONT_BODY
+  s3.addText(col.title, {
+    x: col.x + 0.3, y: 2.1, w: 3.1, h: 0.45,
+    fontSize: 15, bold: true, color: C_PRIMARY_DARK, fontFace: FONT_TITLE
   });
-  s3.addText(b.desc, {
-    x: xPos + 0.15, y: 2.5, w: 2.5, h: 3.9,
-    fontSize: 11, color: C_TEXT_MAIN, fontFace: FONT_BODY, lineSpacingMultiple: 1.15
+  s3.addText(col.items.map(it => `• ${it}\n\n`).join(''), {
+    x: col.x + 0.3, y: 2.65, w: 3.1, h: 3.0,
+    fontSize: 12, color: C_TEXT_MAIN, fontFace: FONT_BODY, lineSpacingMultiple: 1.15
   });
 });
 
-// -------------------------------------------------------------
-// SLIDE 4: Mood Check-in & Dashboard
-// -------------------------------------------------------------
-const s4 = createSlide('ฟังก์ชันบันทึกอารมณ์และแดชบอร์ด (Check-in & Dashboard)', '03. CORE FEATURES');
+// Architecture Pipeline Summary Banner
+s3.addShape(pres.ShapeType.roundRect, {
+  x: 0.8, y: 6.0, w: 11.7, h: 0.8, rectRadius: 0.1,
+  fill: { color: 'F1F5F9' }, line: { color: 'CBD5E1', width: 1 }
+});
+s3.addText('Client Browser / Mobile  ⇆  Nginx Proxy (:8080)  ⇆  Node-RED Engine (:1880)  ⇆  MySQL Database (:3306)', {
+  x: 0.8, y: 6.0, w: 11.7, h: 0.8,
+  fontSize: 13, bold: true, color: C_PRIMARY_DARK, align: 'center', valign: 'middle', fontFace: FONT_TITLE
+});
 
+// ==========================================
+// SLIDE 4: Screen 1 - Authentication & Registration
+// ==========================================
+const s4 = pres.addSlide();
+applySlideBase(s4, '03 / Screen Walkthrough', 'ระบบสมัครสมาชิกและยืนยันตัวตน (Authentication)');
+
+// Left: Screenshot of Login
+const loginImg = path.join(imgDir, '01_login.png');
+if (fs.existsSync(loginImg)) {
+  s4.addImage({
+    path: loginImg,
+    x: 0.8, y: 1.6, w: 6.2, h: 5.1,
+    sizing: { type: 'contain' }
+  });
+}
+
+// Right: Details Card
 s4.addShape(pres.ShapeType.roundRect, {
-  x: 0.8, y: 1.5, w: 5.6, h: 5.2,
-  fill: { color: 'FFFFFF' }, line: { color: C_BORDER, width: 1 }, rectRadius: 0.15
+  x: 7.3, y: 1.6, w: 5.2, h: 5.1, rectRadius: 0.15,
+  fill: { color: C_WHITE }, line: { color: C_BORDER, width: 1.5 }
 });
-s4.addText('🌱 ระบบบันทึกอารมณ์ (Mood Check-in)', {
-  x: 1.1, y: 1.7, w: 5.0, h: 0.4, fontSize: 16, bold: true, color: C_PRIMARY, fontFace: FONT_TITLE
+
+s4.addText('🔐 การรักษาความปลอดภัยบัญชีผู้ใช้', {
+  x: 7.6, y: 1.9, w: 4.6, h: 0.45,
+  fontSize: 16, bold: true, color: C_PRIMARY, fontFace: FONT_TITLE
 });
+
 s4.addText([
-  { text: '• 5 ระดับอารมณ์ พร้อม Emoji ภาษาไทย:\n', options: { bold: true } },
-  { text: '   1. แย่มาก 😞  2. ไม่ค่อยดี 🙁  3. ปกติ 😐  4. ดี 🙂  5. ดีมาก 😄\n\n' },
-  { text: '• ปัจจัยที่เกี่ยวข้อง (Multi-select Badges):\n', options: { bold: true } },
-  { text: '   การเรียน, การสอบ, เพื่อน, ครอบครัว, ความสัมพันธ์, การเงิน, การนอน ฯลฯ\n\n' },
-  { text: '• ระดับความเครียด 1–5 และไดอารี่บันทึกความรู้สึก\n\n' },
-  { text: '• ป้องกันบันทึกซ้ำวันเดียวกัน:', options: { bold: true } },
-  { text: ' มีหน้าต่างแจ้งเตือนพร้อมปุ่มแก้ไขบันทึกเดิม' }
-], { x: 1.1, y: 2.2, w: 5.0, h: 4.2, fontSize: 12.5, color: C_TEXT_MAIN, fontFace: FONT_BODY, lineSpacingMultiple: 1.15 });
-
-s4.addShape(pres.ShapeType.roundRect, {
-  x: 6.8, y: 1.5, w: 5.7, h: 5.2,
-  fill: { color: 'FFFFFF' }, line: { color: C_BORDER, width: 1 }, rectRadius: 0.15
+  { text: '• แยกข้อมูลรายบุคคล 100% (User Data Isolation):\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   ผู้ใช้แต่ละคนมองเห็นเฉพาะบันทึกของตนเอง ไม่สามารถดูของคนอื่นได้\n\n' },
+  { text: '• การเข้ารหัสผ่าน (Password Hashing):\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   ใช้ bcryptjs พร้อม Salt Rounds 10 ในการเข้ารหัสก่อนบันทึก ไม่มีการเก็บ Plain-text\n\n' },
+  { text: '• ระบบ JSON Web Token (JWT):\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   ออก Token อายุ 7 วัน จัดเก็บใน LocalStorage พร้อม Header Authorization ตรวจสอบสิทธิ์ทุก API\n\n' },
+  { text: '• การตรวจสอบอีเมลซ้ำ (Duplicate Prevention):\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   ระบบปฏิเสธการลงทะเบียนอีเมลซ้ำพร้อมแจ้งเตือนผู้ใช้งาน' }
+], {
+  x: 7.6, y: 2.45, w: 4.6, h: 4.0,
+  fontSize: 12.5, color: C_TEXT_MAIN, fontFace: FONT_BODY, lineSpacingMultiple: 1.25
 });
-s4.addText('📊 แดชบอร์ดสรุปผล (User Dashboard)', {
-  x: 7.1, y: 1.7, w: 5.1, h: 0.4, fontSize: 16, bold: true, color: C_PRIMARY, fontFace: FONT_TITLE
-});
-s4.addText([
-  { text: '• ทักทายด้วยชื่อผู้ใช้จริง และแสดงอารมณ์ล่าสุด\n\n' },
-  { text: '• สรุปสถิติสำคัญ:\n', options: { bold: true } },
-  { text: '   จำนวนวันที่บันทึกทั้งหมด, ค่าเฉลี่ยอารมณ์ และความเครียดสะสม\n\n' },
-  { text: '• กราฟแนวโน้มอารมณ์ 7 วันล่าสุด (Chart.js Line Chart):\n', options: { bold: true } },
-  { text: '   เห็นความเปลี่ยนแปลงของใจแบบไดนามิกจากฐานข้อมูลจริง\n\n' },
-  { text: '• รายการบันทึกล่าสุด พร้อมปุ่มแก้ไขและลบรายการ' }
-], { x: 7.1, y: 2.2, w: 5.1, h: 4.2, fontSize: 12.5, color: C_TEXT_MAIN, fontFace: FONT_BODY, lineSpacingMultiple: 1.15 });
 
-// -------------------------------------------------------------
-// SLIDE 5: Analytics & Insights
-// -------------------------------------------------------------
-const s5 = createSlide('สถิติและบทวิเคราะห์สุขภาพใจ (Analytics & Insights)', '04. DATA VISUALIZATION');
+// ==========================================
+// SLIDE 5: Screen 2 - Dashboard Overview
+// ==========================================
+const s5 = pres.addSlide();
+applySlideBase(s5, '04 / Screen Walkthrough', 'แดชบอร์ดสรุปผลสุขภาพใจประจำวัน (Student Dashboard)');
 
+// Left: Screenshot of Dashboard
+const dashImg = path.join(imgDir, '02_dashboard.png');
+if (fs.existsSync(dashImg)) {
+  s5.addImage({
+    path: dashImg,
+    x: 0.8, y: 1.6, w: 6.2, h: 5.1,
+    sizing: { type: 'contain' }
+  });
+}
+
+// Right: Details Card
 s5.addShape(pres.ShapeType.roundRect, {
-  x: 0.8, y: 1.5, w: 11.7, h: 5.2,
-  fill: { color: 'FFFFFF' }, line: { color: C_BORDER, width: 1 }, rectRadius: 0.15
+  x: 7.3, y: 1.6, w: 5.2, h: 5.1, rectRadius: 0.15,
+  fill: { color: C_WHITE }, line: { color: C_BORDER, width: 1.5 }
 });
 
-s5.addText('💡 การวิเคราะห์ข้อมูลเชิงบวก (Non-clinical Supportive Insights)', {
-  x: 1.1, y: 1.7, w: 11.0, h: 0.4, fontSize: 16, bold: true, color: C_PRIMARY, fontFace: FONT_TITLE
+s5.addText('📊 ฟังก์ชันเด่นบนหน้าแดชบอร์ด', {
+  x: 7.6, y: 1.9, w: 4.6, h: 0.45,
+  fontSize: 16, bold: true, color: C_PRIMARY, fontFace: FONT_TITLE
 });
 
 s5.addText([
-  { text: '• เปรียบเทียบช่วงเวลา (7 วัน vs 30 วัน):\n', options: { bold: true } },
-  { text: '   ช่วยให้นักศึกษาเห็นภาพรวมสุขภาพใจทั้งระยะสั้นและระยะยาว\n\n' },
-  { text: '• กราฟสัดส่วนระดับอารมณ์ (Mood Distribution):\n', options: { bold: true } },
-  { text: '   แสดงจำนวนครั้งของอารมณ์แต่ละระดับในรูปแบบแผนภูมิโดนัทเข้าใจง่าย\n\n' },
-  { text: '• อันดับปัจจัยที่มีผลต่อใจบ่อยที่สุด (Top Influencing Factors):\n', options: { bold: true } },
-  { text: '   แจกแจงเป็นเปอร์เซ็นต์ว่าเรื่องใดส่งผลกระทบต่อความรู้สึกมากที่สุด เช่น "การสอบ" หรือ "การนอนหลับ"\n\n' },
-  { text: '• คำแนะนำด้วยภาษาที่เป็นมิตรและให้กำลังใจ:\n', options: { bold: true } },
-  { text: '   สร้างข้อความสนับสนุนตามสถิติจริง ปราศจากการวินิจฉัยโรคทางการแพทย์' }
-], { x: 1.1, y: 2.3, w: 11.0, h: 4.0, fontSize: 13, color: C_TEXT_MAIN, fontFace: FONT_BODY, lineSpacingMultiple: 1.2 });
+  { text: '• การทักทายแบบ Personalized Greeting:\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   แสดงชื่อนักศึกษา ข้อความสร้างแรงบันดาลใจ และสถิติ Streak วันที่บันทึกต่อเนื่อง\n\n' },
+  { text: '• สถานะการเช็คอินวันนี้ (Today Mood Status):\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   บอกสถานะชัดเจนว่าวันนี้บันทึกอารมณ์แล้วหรือยัง พร้อมปุ่มกดบันทึกทันที\n\n' },
+  { text: '• Quick Summary Metrics:\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   แสดงคะแนนอารมณ์เฉลี่ยประจำสัปดาห์, ชั่วโมงการนอนเฉลี่ย, และระดับพลังงาน\n\n' },
+  { text: '• การดึงข้อมูลอัตโนมัติ (RxJS forkJoin):\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   โหลดข้อมูลแดชบอร์ดและสถิติพร้อมกันแบบ Asynchronous ปราศจากปัญหาค้าง' }
+], {
+  x: 7.6, y: 2.45, w: 4.6, h: 4.0,
+  fontSize: 12.5, color: C_TEXT_MAIN, fontFace: FONT_BODY, lineSpacingMultiple: 1.25
+});
 
-// -------------------------------------------------------------
-// SLIDE 6: Self-care Activities
-// -------------------------------------------------------------
-const s6 = createSlide('กิจกรรมดูแลใจและฟื้นฟูพลัง (Self-care Activities)', '05. WELLNESS TOOLKIT');
+// ==========================================
+// SLIDE 6: Screen 3 - Mood Check-in Flow
+// ==========================================
+const s6 = pres.addSlide();
+applySlideBase(s6, '05 / Screen Walkthrough', 'ระบบเช็คอินและบันทึกอารมณ์ (Daily Mood Check-in)');
 
+// Left: Screenshot of Check-in
+const checkinImg = path.join(imgDir, '03_checkin.png');
+if (fs.existsSync(checkinImg)) {
+  s6.addImage({
+    path: checkinImg,
+    x: 0.8, y: 1.6, w: 6.2, h: 5.1,
+    sizing: { type: 'contain' }
+  });
+}
+
+// Right: Details Card
 s6.addShape(pres.ShapeType.roundRect, {
-  x: 0.8, y: 1.5, w: 5.6, h: 5.2,
-  fill: { color: 'F0FDF4' }, line: { color: 'BAE6FD', width: 1 }, rectRadius: 0.15
+  x: 7.3, y: 1.6, w: 5.2, h: 5.1, rectRadius: 0.15,
+  fill: { color: C_WHITE }, line: { color: C_BORDER, width: 1.5 }
 });
-s6.addText('🧘‍♀️ วิดเจ็ตฝึกหายใจแบบ 4-7-8', {
-  x: 1.1, y: 1.7, w: 5.0, h: 0.4, fontSize: 16, bold: true, color: C_SECONDARY, fontFace: FONT_TITLE
+
+s6.addText('📝 ขั้นตอนการบันทึกอารมณ์', {
+  x: 7.6, y: 1.9, w: 4.6, h: 0.45,
+  fontSize: 16, bold: true, color: C_PRIMARY, fontFace: FONT_TITLE
 });
+
 s6.addText([
-  { text: '• เทคนิคผ่อนคลายระบบประสาทที่เป็นสากล:\n', options: { bold: true } },
-  { text: '   ช่วยลดอัตราการเต้นของหัวใจและคลายความวิตกกังวลในไม่กี่นาที\n\n' },
-  { text: '• Interactive Animation & Timer:\n', options: { bold: true } },
-  { text: '   1. หายใจเข้าช้า ๆ 4 วินาที (วงกลมขยายตัว)\n' },
-  { text: '   2. กลั้นลมหายใจไว้ 7 วินาที (รักษาสมดุล)\n' },
-  { text: '   3. ผ่อนลมหายใจออก 8 วินาที (วงกลมหดตัว)\n\n' },
-  { text: '• ผู้ใช้สามารถกดเริ่มและหยุดฝึกได้ตามต้องการ' }
-], { x: 1.1, y: 2.3, w: 5.0, h: 4.0, fontSize: 13, color: C_TEXT_MAIN, fontFace: FONT_BODY, lineSpacingMultiple: 1.15 });
-
-s6.addShape(pres.ShapeType.roundRect, {
-  x: 6.8, y: 1.5, w: 5.7, h: 5.2,
-  fill: { color: 'FFFFFF' }, line: { color: C_BORDER, width: 1 }, rectRadius: 0.15
+  { text: '1. เลือกคะแนนอารมณ์ 5 ระดับ:\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   มีความสุขมาก (5), สงบ/ดี (4), ปกติ (3), เศร้า/เหนื่อย (2), เครียด/กังวล (1)\n\n' },
+  { text: '2. ระบุปัจจัยต้นเหตุ (Influencing Factors):\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   การเรียน, สอบ, เพื่อน, แฟน, ครอบครัว, การเงิน, หรือสุขภาพ\n\n' },
+  { text: '3. บันทึกระดับพลังงาน & การนอนหลับ:\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   ระบุชั่วโมงการนอน (0-24 ชม.) และ Energy Level (1-5) เพื่อดูความสัมพันธ์\n\n' },
+  { text: '4. ไดอารี่ระบายความรู้สึก (Personal Note):\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   พิมพ์บันทึกสิ่งดีๆ หรือเรื่องที่กังวลใจ เพื่อปลดปล่อยความรู้สึก' }
+], {
+  x: 7.6, y: 2.45, w: 4.6, h: 4.0,
+  fontSize: 12.5, color: C_TEXT_MAIN, fontFace: FONT_BODY, lineSpacingMultiple: 1.25
 });
-s6.addText('✨ กิจกรรมฮีลใจและประวัติการดูแลตัวเอง', {
-  x: 7.1, y: 1.7, w: 5.1, h: 0.4, fontSize: 16, bold: true, color: C_PRIMARY, fontFace: FONT_TITLE
-});
-s6.addText([
-  { text: '• กิจกรรมที่คัดสรรสำหรับนักศึกษา:\n', options: { bold: true } },
-  { text: '   - พักสายตาด้วยกฎ 20-20-20\n   - เดินยืดเหยียดร่างกาย 10 นาที\n   - ฟังดนตรี Lo-fi ผ่อนคลาย\n   - เขียนบันทึกระบายความรู้สึก (Journaling)\n   - พูดคุยกับเพื่อนสนิทหรือคนที่ไว้ใจ\n\n' },
-  { text: '• ติ๊ก "ทำสำเร็จแล้ว" บันทึกลงฐานข้อมูลจริง:\n', options: { bold: true } },
-  { text: '   เก็บบันทึกประวัติในตาราง user_activity_logs และแสดงวันเวลาที่ทำกิจกรรมสำเร็จ' }
-], { x: 7.1, y: 2.3, w: 5.1, h: 4.0, fontSize: 12.5, color: C_TEXT_MAIN, fontFace: FONT_BODY, lineSpacingMultiple: 1.15 });
 
-// -------------------------------------------------------------
-// SLIDE 7: Security & Privacy
-// -------------------------------------------------------------
-const s7 = createSlide('ความปลอดภัยและความเป็นส่วนตัว (Security & Privacy)', '06. SECURITY MEASURES');
+// ==========================================
+// SLIDE 7: Screen 4 - Analytics & Insights
+// ==========================================
+const s7 = pres.addSlide();
+applySlideBase(s7, '06 / Screen Walkthrough', 'การวิเคราะห์และแสดงผลสถิติแนวโน้ม (Mood Analytics & Insights)');
 
-const secItems = [
-  { title: '🔒 การแยกสิทธิ์ข้อมูลเด็ดขาด (Strict Data Isolation)', desc: 'Backend ตรวจสอบ user_id จาก JWT Token เสมอ ผู้ใช้ A ไม่สามารถแอบดูหรือแก้ไขข้อมูลของผู้ใช้ B ได้ (ตอบกลับ 404 Not Found)' },
-  { title: '🛡️ ป้องกัน SQL Injection 100%', desc: 'ใช้ Prepared Statements และ Parameterized Queries ผ่าน mysql2 ไม่มีการต่อ String ในคำสั่ง SQL อย่างเด็ดขาด' },
-  { title: '🔑 การรักษาความปลอดภัยรหัสผ่าน', desc: 'รหัสผ่านถูกแฮชด้วย bcryptjs (Salt 10 Rounds) ก่อนบันทึกลง MySQL และไม่มีการส่งรหัสผ่านกลับไปใน API Response' },
-  { title: '🗑️ สิทธิในการลบข้อมูล (Right to be Forgotten)', desc: 'ผู้ใช้สามารถกดลบบัญชีที่หน้า Profile ข้อมูลบันทึกและประวัติกิจกรรมจะถูกลบถาวรออกจาก MySQL ด้วย Foreign Key Cascade' },
-  { title: '📞 ข้อตกลงและการช่วยเหลือเร่งด่วน', desc: 'มีนโยบายความเป็นส่วนตัวชัดเจน พร้อมแสดงเบอร์สายด่วนสุขภาพจิต 1323 (โทรฟรี 24 ชม.)' }
-];
-
-secItems.forEach((item, idx) => {
-  const yPos = 1.5 + (idx * 1.05);
-  s7.addShape(pres.ShapeType.roundRect, {
-    x: 0.8, y: yPos, w: 11.7, h: 0.95,
-    fill: { color: 'FFFFFF' }, line: { color: C_BORDER, width: 1 }, rectRadius: 0.1
+// Left: Screenshot of Analytics
+const analyticsImg = path.join(imgDir, '04_analytics.png');
+if (fs.existsSync(analyticsImg)) {
+  s7.addImage({
+    path: analyticsImg,
+    x: 0.8, y: 1.6, w: 6.2, h: 5.1,
+    sizing: { type: 'contain' }
   });
-  s7.addText(item.title, {
-    x: 1.0, y: yPos + 0.1, w: 11.3, h: 0.3,
-    fontSize: 13, bold: true, color: C_PRIMARY, fontFace: FONT_TITLE
+}
+
+// Right: Details Card
+s7.addShape(pres.ShapeType.roundRect, {
+  x: 7.3, y: 1.6, w: 5.2, h: 5.1, rectRadius: 0.15,
+  fill: { color: C_WHITE }, line: { color: C_BORDER, width: 1.5 }
+});
+
+s7.addText('📈 การประมวลผลข้อมูลสถิติสุขภาพใจ', {
+  x: 7.6, y: 1.9, w: 4.6, h: 0.45,
+  fontSize: 16, bold: true, color: C_PRIMARY, fontFace: FONT_TITLE
+});
+
+s7.addText([
+  { text: '• Mood Trend Line Chart:\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   กราฟเส้นแสดงคะแนนอารมณ์ย้อนหลัง 7 วัน และ 30 วัน ช่วยให้สังเกต Pattern ความเครียดได้ทันที\n\n' },
+  { text: '• Mood Distribution Doughnut Chart:\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   แผนภูมิโดนัทแสดงสัดส่วนอารมณ์ประเภทต่างๆ คิดเป็นเปอร์เซ็นต์อย่างชัดเจน\n\n' },
+  { text: '• Sleep & Energy Correlation:\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   คำนวณเปรียบเทียบชั่วโมงการนอนกับคะแนนอารมณ์ เพื่อให้เห็นความสำคัญของการพักผ่อน\n\n' },
+  { text: '• ตัวกรองช่วงเวลา (Time Filter):\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   เลือกดูข้อมูลย้อนหลัง 7 วัน, 30 วัน หรือทั้งหมดได้อย่างยืดหยุ่น' }
+], {
+  x: 7.6, y: 2.45, w: 4.6, h: 4.0,
+  fontSize: 12.5, color: C_TEXT_MAIN, fontFace: FONT_BODY, lineSpacingMultiple: 1.25
+});
+
+// ==========================================
+// SLIDE 8: Screen 5 - Mood History & Activities
+// ==========================================
+const s8 = pres.addSlide();
+applySlideBase(s8, '07 / Screen Walkthrough', 'ประวัติอารมณ์ย้อนหลังและกิจกรรมดูแลใจ (History & Self-Care)');
+
+// Left: Screenshot of History
+const historyImg = path.join(imgDir, '05_history.png');
+if (fs.existsSync(historyImg)) {
+  s8.addImage({
+    path: historyImg,
+    x: 0.8, y: 1.6, w: 5.7, h: 5.1,
+    sizing: { type: 'contain' }
   });
-  s7.addText(item.desc, {
-    x: 1.0, y: yPos + 0.45, w: 11.3, h: 0.4,
-    fontSize: 11.5, color: C_TEXT_MUTED, fontFace: FONT_BODY
+}
+
+// Right: Screenshot of Activities
+const activitiesImg = path.join(imgDir, '06_activities.png');
+if (fs.existsSync(activitiesImg)) {
+  s8.addImage({
+    path: activitiesImg,
+    x: 6.8, y: 1.6, w: 5.7, h: 5.1,
+    sizing: { type: 'contain' }
   });
-});
+}
 
-// -------------------------------------------------------------
-// SLIDE 8: QA & Testing
-// -------------------------------------------------------------
-const s8 = createSlide('การทดสอบระบบ (Quality Assurance & Test Suite)', '07. SYSTEM VERIFICATION');
+// ==========================================
+// SLIDE 9: Screen 6 - Mobile Responsiveness & Testing
+// ==========================================
+const s9 = pres.addSlide();
+applySlideBase(s9, '08 / Verification & Access', 'การทดสอบระบบและการใช้งานบนมือถือ (Mobile View & QA)');
 
-s8.addShape(pres.ShapeType.roundRect, {
-  x: 0.8, y: 1.5, w: 11.7, h: 5.2,
-  fill: { color: 'FFFFFF' }, line: { color: C_BORDER, width: 1 }, rectRadius: 0.15
-});
-
-s8.addText('🧪 ผลการรันทดสอบอัตโนมัติ (Automated Test Suite: 21 ผ่านครบ / 0 ผิดพลาด)', {
-  x: 1.1, y: 1.7, w: 11.0, h: 0.4, fontSize: 16, bold: true, color: C_GREEN, fontFace: FONT_TITLE
-});
-
-const testCols = [
-  '• Register ผู้ใช้ A สำเร็จ บันทึกลง MySQL\n• ป้องกันสมัครด้วยอีเมลซ้ำ (409 Conflict)\n• Login ด้วยรหัสถูกต้อง ได้รับ JWT Token\n• ปฏิเสธ Login เมื่อรหัสผ่านผิด (401)\n• ปฏิเสธการเข้าถึง API หากไม่มี Token\n• ดึงข้อมูลส่วนตัวถูกต้องจาก Token /auth/me',
-  '• บันทึกอารมณ์สำเร็จพร้อมระดับคะแนนและปัจจัย\n• ป้องกันบันทึกอารมณ์ซ้ำวันเดียวกัน (409)\n• Data Isolation: ผู้ใช้ B แอบอ่านข้อมูล A ไม่ได้ (404)\n• Data Isolation: ผู้ใช้ B แอบแก้ข้อมูล A ไม่ได้ (404)\n• ผู้ใช้ A เปิดอ่านและแก้ไขบันทึกตัวเองได้ปกติ\n• ลบบันทึกอารมณ์สำเร็จ',
-  '• คำนวณสถิติ Analytics เมื่อมีข้อมูลและไม่มีข้อมูล\n• ดึง Master List กิจกรรม Self-care\n• บันทึกการทำกิจกรรมลงตาราง log สำเร็จ\n• แก้ไขชื่อแสดงผลและรหัสนักศึกษาได้\n• สั่งลบบัญชีผู้ใช้ B และ Cascade ลบข้อมูลทั้งหมด\n• ทดสอบ Database Persistence หลังสั่ง Restart'
-];
-
-testCols.forEach((col, idx) => {
-  s8.addText(col, {
-    x: 1.1 + (idx * 3.8), y: 2.3, w: 3.6, h: 4.0,
-    fontSize: 11.5, color: C_TEXT_MAIN, fontFace: FONT_BODY, lineSpacingMultiple: 1.15
+// Left: Mobile View Screenshot
+const mobileImg = path.join(imgDir, '07_mobile_view.png');
+if (fs.existsSync(mobileImg)) {
+  s9.addImage({
+    path: mobileImg,
+    x: 1.2, y: 1.6, w: 3.5, h: 5.1,
+    sizing: { type: 'contain' }
   });
-});
+}
 
-// -------------------------------------------------------------
-// SLIDE 9: Deployment & Mobile Access
-// -------------------------------------------------------------
-const s9 = createSlide('การเผยแพร่และรองรับการใช้งานบนมือถือ (Deployment & Mobile)', '08. DEPLOYMENT STRATEGY');
-
+// Right: Testing & Tunnel Info Card
 s9.addShape(pres.ShapeType.roundRect, {
-  x: 0.8, y: 1.5, w: 5.6, h: 5.2,
-  fill: { color: 'FFFFFF' }, line: { color: C_BORDER, width: 1 }, rectRadius: 0.15
+  x: 5.2, y: 1.6, w: 7.3, h: 5.1, rectRadius: 0.15,
+  fill: { color: C_WHITE }, line: { color: C_BORDER, width: 1.5 }
 });
-s9.addText('🌐 เผยแพร่ผ่าน GitHub Pages', {
-  x: 1.1, y: 1.7, w: 5.0, h: 0.4, fontSize: 16, bold: true, color: C_PRIMARY, fontFace: FONT_TITLE
-});
-s9.addText([
-  { text: '• URL สาธารณะอย่างเป็นทางการ:\n', options: { bold: true } },
-  { text: '   https://tangeiei.github.io/MoodMate/\n\n', options: { color: C_PRIMARY, bold: true } },
-  { text: '• Single Page Application (SPA) Routing:\n', options: { bold: true } },
-  { text: '   แก้ปัญหาการรีเฟรชหน้าด้วย 404.html Fallback\n\n' },
-  { text: '• GitHub Actions CI/CD อัตโนมัติ:\n', options: { bold: true } },
-  { text: '   เมื่อ Push โค้ดขึ้น main ระบบจะ Build และ Deploy ขึ้น gh-pages ทันที' }
-], { x: 1.1, y: 2.3, w: 5.0, h: 4.0, fontSize: 13, color: C_TEXT_MAIN, fontFace: FONT_BODY, lineSpacingMultiple: 1.2 });
 
-s9.addShape(pres.ShapeType.roundRect, {
-  x: 6.8, y: 1.5, w: 5.7, h: 5.2,
-  fill: { color: 'FFFFFF' }, line: { color: C_BORDER, width: 1 }, rectRadius: 0.15
+s9.addText('📱 การเข้าถึงผ่านสมาร์ตโฟน & ความพร้อมใช้งาน', {
+  x: 5.5, y: 1.9, w: 6.7, h: 0.45,
+  fontSize: 16, bold: true, color: C_PRIMARY, fontFace: FONT_TITLE
 });
-s9.addText('📱 การเข้าใช้งานผ่านสมาร์ตโฟน', {
-  x: 7.1, y: 1.7, w: 5.1, h: 0.4, fontSize: 16, bold: true, color: C_PRIMARY, fontFace: FONT_TITLE
-});
-s9.addText([
-  { text: '• Mobile-first Responsive UI:\n', options: { bold: true } },
-  { text: '   ออกแบบให้ใช้งานง่ายบนหน้าจอมือถือทุกขนาด มี Hamburger Menu\n\n' },
-  { text: '• สคริปต์เชื่อมต่อมือถือ (start-mobile.bat):\n', options: { bold: true } },
-  { text: '   ดับเบิลคลิกเดียว สร้าง Live Tunnel (HTTPS) เชื่อมต่อ Docker ในเครื่อง\n\n' },
-  { text: '• รองรับทั้ง 4G/5G และ Wi-Fi:\n', options: { bold: true } },
-  { text: '   ทดลองล็อกอินและบันทึกอารมณ์ลง MySQL จริงได้ทันที' }
-], { x: 7.1, y: 2.3, w: 5.1, h: 4.0, fontSize: 13, color: C_TEXT_MAIN, fontFace: FONT_BODY, lineSpacingMultiple: 1.2 });
 
-// -------------------------------------------------------------
-// SLIDE 10: Conclusion & Q&A
-// -------------------------------------------------------------
+s9.addText([
+  { text: '• Mobile-First Responsive Design:\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   ออกแบบ UI ให้รองรับหน้าจอสมาร์ตโฟน ปุ่มกดง่าย ตัวหนังสือคมชัด และเมนู Bottom/Drawer\n\n' },
+  { text: '• Cloudflare Live Tunnel (HTTPS):\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   สร้างสคริปต์เปิด Tunnel เชื่อมต่อมือถือเข้ากับเครื่องเดโมได้ทันที โดยไม่ต้องตั้งค่า Router หรือเปิด Port\n\n' },
+  { text: '• Automated Test Suite 21 / 21 Tests (100% Pass):\n', options: { bold: true, color: '059669' } },
+  { text: '   - ทดสอบ Register, Duplicate Check, Login/Logout, Token Expiry\n' },
+  { text: '   - ทดสอบ CRUD Mood Entries, Date Uniqueness Constraint\n' },
+  { text: '   - ทดสอบ Cross-user Data Isolation (ผู้ใช้ A ห้ามแก้ข้อมูลผู้ใช้ B)\n' },
+  { text: '   - ทดสอบ Cascade Account Deletion และ Persistence หลังรีสตาร์ต' }
+], {
+  x: 5.5, y: 2.45, w: 6.7, h: 4.0,
+  fontSize: 12.5, color: C_TEXT_MAIN, fontFace: FONT_BODY, lineSpacingMultiple: 1.25
+});
+
+// ==========================================
+// SLIDE 10: Conclusion & Future Roadmap
+// ==========================================
 const s10 = pres.addSlide();
-s10.background = { color: 'EEF2FF' };
+applySlideBase(s10, '09 / Conclusion & Future Roadmap', 'สรุปผลการดำเนินงานและแผนพัฒนาต่อยอด (Conclusion)');
 
-s10.addShape(pres.ShapeType.rect, {
-  x: 0.8, y: 1.5, w: 11.7, h: 4.8,
-  fill: { color: 'FFFFFF' }, line: { color: 'C7D2FE', width: 1.5 },
-  shadow: { type: 'outer', blur: 6, offset: 3, angle: 45, opacity: 0.1 }
+// Left: Project Achievements
+s10.addShape(pres.ShapeType.roundRect, {
+  x: 0.8, y: 1.6, w: 5.6, h: 3.8, rectRadius: 0.15,
+  fill: { color: C_WHITE }, line: { color: '86EFAC', width: 1.5 }
 });
-
-s10.addText('สรุปผลการดำเนินงานและแผนพัฒนาในอนาคต', {
-  x: 1.3, y: 1.9, w: 10.5, h: 0.5, fontSize: 24, bold: true, color: C_PRIMARY, fontFace: FONT_TITLE
+s10.addText('🏆 ความสำเร็จของโครงงาน (Achievements)', {
+  x: 1.1, y: 1.85, w: 5.0, h: 0.45,
+  fontSize: 16, bold: true, color: '059669', fontFace: FONT_TITLE
 });
-
 s10.addText([
-  { text: '• ความสำเร็จของโครงงาน:\n', options: { bold: true, color: C_TEXT_MAIN } },
-  { text: '   ได้เว็บแอปพลิเคชัน MoodMate ที่พร้อมใช้งานจริงทั้ง Frontend, Backend API, MySQL และ Docker\n\n' },
-  { text: '• แผนพัฒนาต่อยอด (Future Roadmap):\n', options: { bold: true, color: C_TEXT_MAIN } },
-  { text: '   - เพิ่มระบบแจ้งเตือนบันทึกอารมณ์ประจำวัน (Push Notification)\n' },
-  { text: '   - พัฒนาระบบส่งออกรายงานสรุปสุขภาพใจประจำเดือนเป็นเอกสาร PDF สำหรับคุยกับผู้เชี่ยวชาญ\n\n' },
-  { text: 'ขอขอบพระคุณอาจารย์และคณะกรรมการทุกท่านครับ / ค่ะ\nยินดีรับฟังข้อเสนอแนะและตอบข้อซักถาม (Q&A)', options: { bold: true, color: C_PRIMARY } }
-], { x: 1.3, y: 2.6, w: 10.5, h: 3.3, fontSize: 14, color: C_TEXT_MAIN, fontFace: FONT_BODY, lineSpacingMultiple: 1.25 });
+  { text: '• ระบบทำงานได้จริงครบวงจร (End-to-End):\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   Frontend, Backend REST API และ Database เชื่อมต่อเสถียร 100%\n\n' },
+  { text: '• ประสบการณ์ใช้งานที่ลื่นไหล (UX/UI):\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   ออกแบบโทนสีอบอุ่น ลดความเครียด บันทึกง่ายภายใน 1 นาที\n\n' },
+  { text: '• คุณภาพซอฟต์แวร์ระดับมืออาชีพ:\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   มีชุดทดสอบอัตโนมัติ รันผ่าน Docker ได้ในคำสั่งเดียว และรองรับการใช้งานผ่านมือถือ' }
+], {
+  x: 1.1, y: 2.4, w: 5.0, h: 2.8,
+  fontSize: 13, color: C_TEXT_MAIN, fontFace: FONT_BODY, lineSpacingMultiple: 1.25
+});
+
+// Right: Future Roadmap
+s10.addShape(pres.ShapeType.roundRect, {
+  x: 6.8, y: 1.6, w: 5.7, h: 3.8, rectRadius: 0.15,
+  fill: { color: C_WHITE }, line: { color: '93C5FD', width: 1.5 }
+});
+s10.addText('🔮 แผนพัฒนาในอนาคต (Future Roadmap)', {
+  x: 7.1, y: 1.85, w: 5.1, h: 0.45,
+  fontSize: 16, bold: true, color: C_PRIMARY, fontFace: FONT_TITLE
+});
+s10.addText([
+  { text: '• ระบบแจ้งเตือนรายวัน (Push Notification):\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   แจ้งเตือนให้นักศึกษาเข้ามาเช็คอินอารมณ์ก่อนนอนเป็นประจำ\n\n' },
+  { text: '• AI Mood Companion & Advice:\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   ใช้โมเดลปัญญาประดิษฐ์ให้กำลังใจและวิเคราะห์สภาวะจิตใจเชิงลึก\n\n' },
+  { text: '• การส่งออกรายงานสรุปสุขภาพใจ (PDF Export):\n', options: { bold: true, color: C_TEXT_MAIN } },
+  { text: '   สร้างรายงานสรุปประวัติอารมณ์สำหรับปรึกษาอาจารย์หรือจิตแพทย์' }
+], {
+  x: 7.1, y: 2.4, w: 5.1, h: 2.8,
+  fontSize: 13, color: C_TEXT_MAIN, fontFace: FONT_BODY, lineSpacingMultiple: 1.25
+});
+
+// Thank You & Q&A Card
+s10.addShape(pres.ShapeType.roundRect, {
+  x: 0.8, y: 5.6, w: 11.7, h: 1.15, rectRadius: 0.12,
+  fill: { color: C_PRIMARY_LIGHT }, line: { color: 'BFDBFE', width: 1 }
+});
+s10.addText('ขอขอบพระคุณอาจารย์และคณะกรรมการทุกท่าน 🙏\nยินดีรับฟังข้อเสนอแนะและตอบข้อซักถาม (Q&A Session)', {
+  x: 0.8, y: 5.6, w: 11.7, h: 1.15,
+  fontSize: 15, bold: true, color: '1E3A8A', align: 'center', valign: 'middle', fontFace: FONT_TITLE
+});
 
 // Save PowerPoint Presentation
 const outputDir = path.join(__dirname, 'presentation');
@@ -418,7 +534,7 @@ if (!fs.existsSync(outputDir)) {
 
 const outputPath = path.join(outputDir, 'MoodMate_Presentation.pptx');
 pres.writeFile({ fileName: outputPath }).then(() => {
-  console.log('PowerPoint presentation generated successfully at: ' + outputPath);
+  console.log('PowerPoint presentation with embedded UI screenshots generated at: ' + outputPath);
 }).catch(err => {
   console.error('Error generating presentation:', err);
 });
