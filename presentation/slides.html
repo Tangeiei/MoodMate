@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoodMate - การนำเสนอโครงงานเว็บแอปพลิเคชัน</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #5a78a6;
+      --primary-light: #7b99c7;
+      --primary-dark: #3f587d;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #2c3e50;
+      --muted: #64748b;
+      --accent-happy: #f6c779;
+      --accent-calm: #98d4bb;
+      --accent-anxious: #f0a3a3;
+      --accent-purple: #c5a8e2;
+      --shadow: 0 10px 30px rgba(0,0,0,0.06);
+      --border: #e2e8f0;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Prompt', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    body {
+      background: #0f172a;
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .presentation-container {
+      width: 100%;
+      max-width: 1120px;
+      aspect-ratio: 16 / 9;
+      background: var(--bg);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .slide {
+      display: none;
+      width: 100%;
+      height: 100%;
+      padding: 40px 50px;
+      flex-direction: column;
+      overflow-y: auto;
+      animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .slide.active {
+      display: flex;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .slide-header {
+      margin-bottom: 24px;
+      border-bottom: 2px solid #e9edf3;
+      padding-bottom: 12px;
+    }
+    .slide-tag {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 4px;
+    }
+    .slide-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--primary-dark);
+    }
+    .slide-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    /* Controls Bar */
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 1120px;
+      margin-top: 18px;
+      color: #94a3b8;
+      font-size: 14px;
+    }
+    .btn-group {
+      display: flex;
+      gap: 10px;
+    }
+    .btn {
+      background: #1e293b;
+      color: #f1f5f9;
+      border: 1px solid #334155;
+      padding: 8px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .btn:hover:not(:disabled) {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* Component Styles */
+    .hero-title {
+      font-size: 44px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+    .hero-subtitle {
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+    .badge-pill {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+    .badge-blue { background: #e0ecfb; color: #2563eb; }
+    .badge-green { background: #e6f7ef; color: #059669; }
+    .badge-purple { background: #f3e8ff; color: #7c3aed; }
+    .badge-amber { background: #fef3c7; color: #d97706; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      box-shadow: var(--shadow);
+    }
+    .card-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--primary-dark);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card p, .card li {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #475569;
+    }
+    ul.styled-list {
+      list-style-type: none;
+    }
+    ul.styled-list li {
+      margin-bottom: 8px;
+      position: relative;
+      padding-left: 20px;
+    }
+    ul.styled-list li::before {
+      content: "•";
+      color: var(--primary);
+      font-size: 20px;
+      position: absolute;
+      left: 4px;
+      top: -3px;
+    }
+    .highlight-box {
+      background: #eff6ff;
+      border-left: 4px solid var(--primary);
+      padding: 12px 18px;
+      border-radius: 0 8px 8px 0;
+      font-size: 14px;
+      color: #1e3a8a;
+      margin-top: 14px;
+    }
+    .kbd-hint {
+      color: #64748b;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="presentation-container" id="presentation">
+
+    <!-- SLIDE 1: Title -->
+    <div class="slide active">
+      <div class="slide-content" style="text-align: center; align-items: center;">
+        <div style="font-size: 54px; margin-bottom: 10px;">🌱 💙 ✨</div>
+        <h1 class="hero-title">MoodMate</h1>
+        <h2 class="hero-subtitle">Student Mood Tracking Web Application</h2>
+        <p style="font-size: 16px; color: #475569; max-width: 650px; line-height: 1.7; margin-bottom: 24px;">
+          เว็บแอปพลิเคชันบันทึกและวิเคราะห์สุขภาพอารมณ์สำหรับนักศึกษา<br>
+          ดูแลสภาวะจิตใจผ่านการติดตามความรู้สึก พร้อมกิจกรรมผ่อนคลายและสถิติอัจฉริยะ
+        </p>
+        <div>
+          <span class="badge-pill badge-blue">Frontend: Angular 22 & Chart.js</span>
+          <span class="badge-pill badge-purple">Backend: Node-RED REST API</span>
+          <span class="badge-pill badge-green">Database: MySQL 8.0</span>
+          <span class="badge-pill badge-amber">DevOps: Docker Compose</span>
+        </div>
+        <div style="margin-top: 30px; font-size: 13px; color: #94a3b8;">
+          GitHub: github.com/Tangeiei/MoodMate &bull; GitHub Pages &bull; Cloudflare Live Tunnel
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 2: Problem & Motivation -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-tag">01 / Background & Problem</div>
+        <h2 class="slide-title">ที่มาและความสำคัญของปัญหา (Problem Statement)</h2>
+      </div>
+      <div class="slide-content">
+        <div class="grid-2">
+          <div class="card" style="border-left: 4px solid #ef4444;">
+            <div class="card-title">⚠️ ปัญหาความเครียดของนักศึกษา</div>
+            <p>
+              นักศึกษาในปัจจุบันเผชิญแรงกดดันจากการเรียน สอบแข่งขัน โปรเจกต์ และปัญหาส่วนตัว ส่งผลให้เกิดความเครียดสะสม อาการหมดไฟ (Burnout) และภาวะซึมเศร้าโดยไม่รู้ตัว
+            </p>
+          </div>
+          <div class="card" style="border-left: 4px solid #f59e0b;">
+            <div class="card-title">📝 การขาดเครื่องมือติดตามที่เข้าถึงง่าย</div>
+            <p>
+              คนส่วนใหญ่ไม่มีการจดบันทึกสภาวะอารมณ์อย่างเป็นระบบ ทำให้ไม่เห็นแนวโน้มความเปลี่ยนแปลง และขาดคำแนะนำกิจกรรมดูแลสุขภาพใจที่เหมาะสมในแต่ละวัน
+            </p>
+          </div>
+        </div>
+        <div class="highlight-box" style="margin-top: 20px;">
+          <strong>🎯 วัตถุประสงค์ของ MoodMate:</strong> สร้างแพลตฟอร์มที่ใช้งานง่าย ปลอดภัย ให้ความเป็นส่วนตัวสูง ช่วยให้นักศึกษาเข้าใจตนเอง รู้เท่าทันอารมณ์ และได้รับคำแนะนำกิจกรรมฟื้นฟูจิตใจอย่างถูกต้อง
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 3: Architecture & Tech Stack -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-tag">02 / Technical Architecture</div>
+        <h2 class="slide-title">สถาปัตยกรรมระบบและเครื่องมือที่ใช้ (System Architecture)</h2>
+      </div>
+      <div class="slide-content">
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-title">🅰️ Frontend Tier</div>
+            <ul class="styled-list">
+              <li><strong>Angular 22:</strong> SPA Component Architecture</li>
+              <li><strong>SCSS:</strong> Pastel Warm & Responsive Design</li>
+              <li><strong>Chart.js:</strong> Interactive Visualizations</li>
+              <li><strong>Nginx:</strong> Production Web Server Container</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="card-title">🔴 Backend API Tier</div>
+            <ul class="styled-list">
+              <li><strong>Node-RED:</strong> Flow-based Low-code Engine</li>
+              <li><strong>REST API:</strong> /api/auth, /api/moods, /api/analytics</li>
+              <li><strong>Security:</strong> bcryptjs (Salt 10) & JWT Token</li>
+              <li><strong>mysql2 Pool:</strong> Optimized DB queries</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="card-title">🐬 Database & DevOps</div>
+            <ul class="styled-list">
+              <li><strong>MySQL 8.0:</strong> Relational Database Engine</li>
+              <li><strong>Data Isolation:</strong> Foreign Key Constraints</li>
+              <li><strong>Docker Compose:</strong> Multi-container Stack</li>
+              <li><strong>GitHub Pages & Cloudflare:</strong> Testing & Tunnel</li>
+            </ul>
+          </div>
+        </div>
+        <div class="highlight-box" style="margin-top: 16px; font-size: 13px;">
+          💡 ระบบถูกออกแบบให้ทำงานร่วมกันเป็นเอกเทศผ่าน Container Network ปลอดภัย ขยายระบบได้ง่าย และสามารถ Deploy ขึ้น Server ใดก็ได้ด้วยคำสั่งเดียว <code>docker compose up -d</code>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 4: Core Features -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-tag">03 / Core Features</div>
+        <h2 class="slide-title">ฟังก์ชันหลักของระบบ (Core Features)</h2>
+      </div>
+      <div class="slide-content">
+        <div class="grid-4">
+          <div class="card">
+            <div class="card-title">🔐 ยืนยันตัวตน</div>
+            <p>ลงทะเบียน & เข้าสู่ระบบด้วย Email + Password เข้ารหัส bcrypt ปลอดภัย แยกข้อมูลส่วนตัวรายบุคคล 100%</p>
+          </div>
+          <div class="card">
+            <div class="card-title">😊 เช็คอินอารมณ์</div>
+            <p>บันทึกอารมณ์ 5 ระดับ (มีความสุข สงบ ปกติ เศร้า กังวล) พร้อมเลือกกิจกรรม แท็ก และบันทึกข้อความรายวัน</p>
+          </div>
+          <div class="card">
+            <div class="card-title">📊 สรุปแดชบอร์ด</div>
+            <p>แสดงการวิเคราะห์รายสัปดาห์ Streak วันที่บันทึกต่อเนื่อง และข้อความสถิติเพื่อให้กำลังใจตนเอง</p>
+          </div>
+          <div class="card">
+            <div class="card-title">📜 ประวัติย้อนหลัง</div>
+            <p>ดูรายการบันทึกย้อนหลัง กรองตามระดับอารมณ์ และช่วงวันที่ พร้อมฟังก์ชันแก้ไขหรือลบรายการได้อย่างอิสระ</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 5: Analytics & Insights -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-tag">04 / Analytics & Insights</div>
+        <h2 class="slide-title">ระบบวิเคราะห์ข้อมูลสถิติอารมณ์ (Analytics Engine)</h2>
+      </div>
+      <div class="slide-content">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">📈 Mood Trend Line Chart</div>
+            <p style="margin-bottom: 10px;">
+              กราฟเส้นแสดงทิศทางแนวโน้มคะแนนสุขภาพอารมณ์ตลอด 7 วัน และ 30 วันที่ผ่านมา ช่วยให้ผู้ใช้เห็นว่าช่วงเวลาใดที่ความเครียดสูง หรืออารมณ์ดีขึ้นอย่างชัดเจน
+            </p>
+            <div class="badge-pill badge-blue">Chart.js Responsive Rendering</div>
+          </div>
+          <div class="card">
+            <div class="card-title">🍩 Mood Distribution Doughnut Chart</div>
+            <p style="margin-bottom: 10px;">
+              แผนภูมิโดนัทสัดส่วนความถี่ของแต่ละอารมณ์ ช่วยให้ประเมินได้ทันทีว่าในภาพรวมหนึ่งเดือน ผู้ใช้มีความสุขหรือความกังวลเป็นสัดส่วนกี่เปอร์เซ็นต์
+            </p>
+            <div class="badge-pill badge-green">Percentage & Frequency Aggregation</div>
+          </div>
+        </div>
+        <div class="highlight-box" style="margin-top: 18px;">
+          ✨ มีการคำนวณ <strong>Streak Counter</strong> และ <strong>Average Mood Score</strong> อัตโนมัติ เพื่อสร้างแรงจูงใจเชิงบวก (Gamification) ให้นักศึกษาเข้ามาดูแลสุขภาพใจอย่างสม่ำเสมอ
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 6: Self-Care Activities -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-tag">05 / Wellness Recommendation</div>
+        <h2 class="slide-title">ระบบกิจกรรมดูแลสุขภาพใจ (Self-Care & Wellness)</h2>
+      </div>
+      <div class="slide-content">
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-title">🧘 กิจกรรมฝึกสติ</div>
+            <p>เทคนิคการหายใจ 4-7-8, Body Scan ผ่อนคลายกล้ามเนื้อ, และการทำสมาธิสั้น 5 นาทีก่อนเริ่มอ่านหนังสือสอบ</p>
+          </div>
+          <div class="card">
+            <div class="card-title">🚶 กิจกรรมผ่อนคลาย</div>
+            <p>การเดินรับแสงแดด, ยืดเส้นแก้ Office Syndrome, และการฟังเสียงธรรมชาติ (Sound Therapy)</p>
+          </div>
+          <div class="card">
+            <div class="card-title">📖 การจัดระเบียบความคิด</div>
+            <p>บันทึกความรู้สึกขอบคุณ (Gratitude Journal), การเขียนระบายความกังวล (Brain Dump)</p>
+          </div>
+        </div>
+        <div class="highlight-box" style="margin-top: 18px;">
+          💡 <strong>Personalized Recommendation:</strong> ระบบสามารถแนะนำกิจกรรมที่สอดคล้องกับคะแนนอารมณ์ที่บันทึก เช่น หากบันทึกว่า <em>"กังวล / เศร้า"</em> ระบบจะแนะนำแบบฝึกหายใจและพักสายตาทันที
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 7: Security & Privacy -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-tag">06 / Security & Architecture</div>
+        <h2 class="slide-title">ความปลอดภัยและการปกป้องข้อมูลส่วนบุคคล (Security & Privacy)</h2>
+      </div>
+      <div class="slide-content">
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-title">🔒 Password Hashing</div>
+            <p>รหัสผ่านถูกเข้ารหัสด้วยอัลกอริทึม <strong>bcrypt</strong> (Salt rounds 10) ก่อนจัดเก็บลงฐานข้อมูล ป้องกันการรั่วไหล 100%</p>
+          </div>
+          <div class="card">
+            <div class="card-title">🎟️ JWT Token Auth</div>
+            <p>การยืนยันสิทธิ์ผ่าน JSON Web Token กำหนดอายุ Token ชัดเจน ส่งผ่าน HTTP Authorization Header อย่างรัดกุม</p>
+          </div>
+          <div class="card">
+            <div class="card-title">🛡️ Strict Data Isolation</div>
+            <p>ทุก Query ใน Node-RED ตรวจสอบ <code>user_id</code> เสมอ ผู้ใช้แต่ละคนจะไม่สามารถเข้าถึงหรือเห็นข้อมูลอารมณ์ของผู้อื่นได้</p>
+          </div>
+        </div>
+        <div class="card" style="margin-top: 16px;">
+          <div class="card-title">⚡ Database Integrity & Volume Persistence</div>
+          <p>
+            ใช้ Foreign Key Constraints พร้อม <code>ON DELETE CASCADE</code> เมื่อลบบัญชี ข้อมูลอารมณ์จะถูกลบอย่างสะอาดหมดจด และข้อมูลถูกจัดเก็บใน Docker Persistent Volume ไม่สูญหายแม้ Restart เครื่อง
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 8: QA & Testing -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-tag">07 / Verification & Quality</div>
+        <h2 class="slide-title">การทดสอบระบบและคุณภาพซอฟต์แวร์ (Testing & QA)</h2>
+      </div>
+      <div class="slide-content">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">🤖 Automated Test Suite</div>
+            <ul class="styled-list">
+              <li>สร้างชุดทดสอบอัตโนมัติด้วย Node.js (<code>scripts/test-suite.js</code>)</li>
+              <li>ครอบคลุมการทดสอบทั้งหมด <strong>21 / 21 Test Cases ผ่าน 100%</strong></li>
+              <li>ทดสอบ Authentication, Duplicate Email Check, Mood CRUD, Analytics Summary</li>
+              <li>ทดสอบความปลอดภัย: Cross-user Data Isolation & Cascade Deletion</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="card-title">📱 Cross-Platform UI Testing</div>
+            <ul class="styled-list">
+              <li>ทดสอบการแสดงผลแบบ Responsive บน Desktop และ Mobile Browser</li>
+              <li>แก้ปัญหา Infinite Loading จากการเปลี่ยน Environment API และดัก Error ด้วย RxJS <code>catchError</code></li>
+              <li>ทดสอบเปิดใช้งานจริงบนสมาร์ตโฟนผ่าน Cloudflare Tunnel</li>
+            </ul>
+          </div>
+        </div>
+        <div class="highlight-box" style="margin-top: 18px; border-left-color: #10b981; background: #ecfdf5; color: #065f46;">
+          ✅ <strong>ผลลัพธ์:</strong> ระบบผ่านการทดสอบครบถ้วนทุกกรณี มีความเสถียร ไม่พบข้อผิดพลาดร้ายแรง พร้อมนำเสนอและใช้งานจริง
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 9: Deployment & Mobile Access -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-tag">08 / Deployment & Access</div>
+        <h2 class="slide-title">การติดตั้งและการเข้าใช้งานผ่านมือถือ (Deployment & Mobile)</h2>
+      </div>
+      <div class="slide-content">
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-title">📦 Docker Compose</div>
+            <p>รันทั้งระบบด้วยคำสั่งเดียว มี 3 คอนเทนเนอร์ (Frontend, Backend, Database) มี Healthcheck และ Auto-restart</p>
+          </div>
+          <div class="card">
+            <div class="card-title">🌐 GitHub Pages</div>
+            <p>โฮสต์หน้าเว็บเวอร์ชันพรีวิวบน GitHub Pages ให้ทุกคนสามารถเข้าชมการจัดวางและดีไซน์ UI ได้ทันที</p>
+          </div>
+          <div class="card">
+            <div class="card-title">📲 Mobile Live Tunnel</div>
+            <p>มี Script รัน Cloudflare Tunnel เชื่อมต่อมือถือเข้ากับเครื่องเดโมผ่าน HTTPS ได้อย่างปลอดภัยโดยไม่ต้องเปิดพอร์ตเราเตอร์</p>
+          </div>
+        </div>
+        <div class="card" style="margin-top: 16px;">
+          <div class="card-title">🚀 สคริปต์อำนวยความสะดวกสำหรับผู้นำเสนอ</div>
+          <p>
+            สร้างไฟล์ <code>start-mobile.bat</code> ดับเบิลคลิกเปิดระบบ Tunnel ให้มือถือสแกนเข้าใช้งานได้ในคลิกเดียว พร้อมคัดลอกลิงก์ให้อัตโนมัติ
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 10: Conclusion & Roadmap -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-tag">09 / Conclusion & Future Work</div>
+        <h2 class="slide-title">สรุปผลการดำเนินงานและแผนพัฒนาในอนาคต (Conclusion & Roadmap)</h2>
+      </div>
+      <div class="slide-content">
+        <div class="grid-2">
+          <div class="card" style="border-left: 4px solid #10b981;">
+            <div class="card-title">🏆 ความสำเร็จของโครงงาน</div>
+            <ul class="styled-list">
+              <li>พัฒนาเว็บแอปพลิเคชัน MoodMate ที่พร้อมใช้งานจริง ครบทั้ง Frontend, Backend และ Database</li>
+              <li>ผ่านการทดสอบอัตโนมัติ 21 หัวข้อ ยืนยันความปลอดภัยและความแม่นยำของข้อมูล</li>
+              <li>รองรับการเข้าถึงได้จากทุกอุปกรณ์ ทั้งคอมพิวเตอร์ แท็บเล็ต และสมาร์ตโฟน</li>
+            </ul>
+          </div>
+          <div class="card" style="border-left: 4px solid var(--primary);">
+            <div class="card-title">🔮 แผนพัฒนาต่อยอด (Future Roadmap)</div>
+            <ul class="styled-list">
+              <li><strong>Push Notification:</strong> เพิ่มระบบแจ้งเตือนเช็คอินอารมณ์ประจำวัน</li>
+              <li><strong>AI Companion:</strong> แนะนำบทความและวิเคราะห์แนวโน้มอารมณ์ด้วยโมเดลภาษาขนาดใหญ่</li>
+              <li><strong>PDF Report Export:</strong> สร้างรายงานสรุปประวัติอารมณ์ประจำเดือนสำหรับคุยกับอาจารย์ที่ปรึกษาหรือแพทย์</li>
+            </ul>
+          </div>
+        </div>
+        <div class="highlight-box" style="margin-top: 20px; text-align: center; font-size: 16px; font-weight: 600;">
+          🙏 ขอขอบพระคุณอาจารย์และคณะกรรมการทุกท่าน &bull; ยินดีรับฟังข้อเสนอแนะและตอบข้อซักถาม (Q&A)
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom Navigation Bar -->
+  <div class="controls">
+    <div class="btn-group">
+      <button class="btn" id="btnPrev" onclick="prevSlide()">◀ ก่อนหน้า</button>
+      <button class="btn" id="btnNext" onclick="nextSlide()">ถัดไป ▶</button>
+      <button class="btn" onclick="toggleFullscreen()">⛶ เต็มจอ (Fullscreen)</button>
+    </div>
+    <div id="slideCounter" style="font-weight: 500;">สไลด์ 1 / 10</div>
+    <div class="kbd-hint">ใช้ปุ่มลูกศร ◀ / ▶ หรือ Spacebar ในการเปลี่ยนสไลด์</div>
+  </div>
+
+  <script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const counter = document.getElementById('slideCounter');
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
+
+    function showSlide(index) {
+      if (index < 0) index = 0;
+      if (index >= slides.length) index = slides.length - 1;
+      
+      slides.forEach((slide, i) => {
+        slide.classList.toggle('active', i === index);
+      });
+      
+      currentSlide = index;
+      counter.textContent = `สไลด์ ${currentSlide + 1} / ${slides.length}`;
+      btnPrev.disabled = currentSlide === 0;
+      btnNext.disabled = currentSlide === slides.length - 1;
+    }
+
+    function nextSlide() {
+      if (currentSlide < slides.length - 1) {
+        showSlide(currentSlide + 1);
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 0) {
+        showSlide(currentSlide - 1);
+      }
+    }
+
+    function toggleFullscreen() {
+      const elem = document.getElementById('presentation');
+      if (!document.fullscreenElement) {
+        elem.requestFullscreen().catch(err => {
+          alert(`Error attempting to enable fullscreen: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        prevSlide();
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleFullscreen();
+      } else if (e.key === 'Home') {
+        showSlide(0);
+      } else if (e.key === 'End') {
+        showSlide(slides.length - 1);
+      }
+    });
+
+    showSlide(0);
+  </script>
+</body>
+</html>
