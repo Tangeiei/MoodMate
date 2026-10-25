@@ -1,12 +1,13 @@
 @echo off
-echo ========================================================
-echo  MoodMate - Start Mobile Tunnel (Cloudflare)
-echo ========================================================
-echo.
-echo [*] Starting tunnel to local port 8080...
-echo [*] Please copy the HTTPS URL below to open on mobile:
-echo.
+title MoodMate - Mobile Tunnel
+color 0b
+cd /d "%~dp0.."
 
-tools\cloudflared.exe tunnel --url http://localhost:8080
+if exist "scripts\start-mobile-tunnel.js" (
+    node scripts\start-mobile-tunnel.js
+) else (
+    echo [*] Starting Cloudflare Tunnel...
+    tools\cloudflared.exe tunnel --url http://localhost:8080
+)
 
 pause
